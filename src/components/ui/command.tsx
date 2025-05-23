@@ -11,10 +11,16 @@ const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive>
 >(({ className, ...props }, ref) => {
-  // Ensure props are safe for rendering
+  // Ensure ALL props are safe for rendering, especially any that might be iterated
   const safeProps = {
     ...props,
-    children: props.children || null,
+    children: props.children ?? null,
+    value: props.value ?? "",
+    onValueChange: props.onValueChange ?? (() => {}),
+    filter: props.filter ?? undefined,
+    label: props.label ?? undefined,
+    shouldFilter: props.shouldFilter ?? undefined,
+    loop: props.loop ?? undefined,
   }
   
   return (
@@ -37,7 +43,7 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
         <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
-          {children || null}
+          {children ?? null}
         </Command>
       </DialogContent>
     </Dialog>
@@ -69,7 +75,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || null,
+    children: props.children ?? null,
   }
   
   return (
@@ -102,7 +108,10 @@ const CommandGroup = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || null,
+    children: props.children ?? null,
+    heading: props.heading ?? undefined,
+    value: props.value ?? undefined,
+    forceMount: props.forceMount ?? undefined,
   };
 
   return (
@@ -137,7 +146,12 @@ const CommandItem = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || null,
+    children: props.children ?? null,
+    value: props.value ?? "",
+    disabled: props.disabled ?? false,
+    onSelect: props.onSelect ?? (() => {}),
+    keywords: props.keywords ?? undefined,
+    forceMount: props.forceMount ?? undefined,
   };
   
   return (
