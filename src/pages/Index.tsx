@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Search, Users, User, Calendar, Plus, Download, Heart, Home } from 'luci
 import AddDonorForm from '../components/AddDonorForm';
 import DonorSearch from '../components/DonorSearch';
 import DonorList from '../components/DonorList';
-import { Donor, bloodGroups, bloodCompatibility, calculateNextDonationDate, hasDonorGraduated } from '../types/donor';
+import { Donor, bloodGroups, bloodCompatibility, calculateNextDonationDate } from '../types/donor';
 
 const Index = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
