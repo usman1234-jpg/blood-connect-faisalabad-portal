@@ -85,7 +85,6 @@ const CommandGroup = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
 >(({ className, ...props }, ref) => {
-  // Add defensive check to ensure children is not undefined
   const safeProps = {
     ...props,
     children: props.children || null, // Ensure children is never undefined
@@ -121,7 +120,6 @@ const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
 >(({ className, ...props }, ref) => {
-  // Add defensive check for props
   const safeProps = {
     ...props,
     children: props.children || null, // Ensure children is never undefined
