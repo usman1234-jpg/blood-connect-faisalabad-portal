@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -314,6 +313,34 @@ const Index = () => {
 
               <Card>
                 <CardHeader>
+                  <CardTitle>Gender Distribution</CardTitle>
+                  <CardDescription>Number of donors by gender</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={genderData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({name, value}) => `${name} (${value})`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        <Cell fill="#3b82f6" /> {/* Male */}
+                        <Cell fill="#ec4899" /> {/* Female */}
+                        <Cell fill="#8b5cf6" /> {/* Other */}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle>City Distribution</CardTitle>
                   <CardDescription>Number of donors by city</CardDescription>
                 </CardHeader>
@@ -371,35 +398,6 @@ const Index = () => {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Gender Distribution Chart - Moved to the end */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gender Distribution</CardTitle>
-                  <CardDescription>Number of donors by gender</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={genderData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({name, value}) => `${name} (${value})`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        <Cell fill="#3b82f6" /> {/* Male */}
-                        <Cell fill="#ec4899" /> {/* Female */}
-                        <Cell fill="#8b5cf6" /> {/* Other */}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>

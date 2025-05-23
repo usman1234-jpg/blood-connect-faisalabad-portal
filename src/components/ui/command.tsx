@@ -10,34 +10,16 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive>
->(({ className, ...props }, ref) => {
-  // Ensure ALL props are safe for rendering, especially any that might be iterated
-  const safeProps = {
-    ...props,
-    children: props.children ?? null,
-    value: props.value ?? "",
-    onValueChange: props.onValueChange ?? (() => {}),
-    filter: props.filter ?? undefined,
-    label: props.label ?? undefined,
-    shouldFilter: props.shouldFilter ?? undefined,
-    loop: props.loop ?? undefined,
-    // Additional safeguards for other potentially undefined props
-    groups: props.groups ?? [],
-    options: props.options ?? [],
-    hidden: props.hidden ?? false,
-  }
-  
-  return (
-    <CommandPrimitive
-      ref={ref}
-      className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
-        className
-      )}
-      {...safeProps}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <CommandPrimitive
+    ref={ref}
+    className={cn(
+      "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+      className
+    )}
+    {...props}
+  />
+))
 Command.displayName = CommandPrimitive.displayName
 
 interface CommandDialogProps extends DialogProps {}
@@ -47,7 +29,7 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
         <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
-          {children ?? null}
+          {children}
         </Command>
       </DialogContent>
     </Dialog>
@@ -76,22 +58,13 @@ CommandInput.displayName = CommandPrimitive.Input.displayName
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => {
-  const safeProps = {
-    ...props,
-    children: props.children ?? null,
-    // Additional safeguards
-    items: Array.isArray(props.items) ? props.items : [],
-  }
-  
-  return (
-    <CommandPrimitive.List
-      ref={ref}
-      className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
-      {...safeProps}
-    />
-  )
-})
+>(({ className, ...props }, ref) => (
+  <CommandPrimitive.List
+    ref={ref}
+    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    {...props}
+  />
+))
 
 CommandList.displayName = CommandPrimitive.List.displayName
 
@@ -112,14 +85,10 @@ const CommandGroup = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
 >(({ className, ...props }, ref) => {
+  // Add defensive check to ensure children is not undefined
   const safeProps = {
     ...props,
-    children: props.children ?? null,
-    heading: props.heading ?? undefined,
-    value: props.value ?? undefined,
-    forceMount: props.forceMount ?? undefined,
-    // Additional safeguards
-    items: Array.isArray(props.items) ? props.items : [],
+    children: props.children || null, // Ensure children is never undefined
   };
 
   return (
@@ -152,16 +121,10 @@ const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
 >(({ className, ...props }, ref) => {
+  // Add defensive check for props
   const safeProps = {
     ...props,
-    children: props.children ?? null,
-    value: props.value ?? "",
-    disabled: props.disabled ?? false,
-    onSelect: props.onSelect ?? (() => {}),
-    keywords: props.keywords ?? undefined,
-    forceMount: props.forceMount ?? undefined,
-    // Additional safeguards
-    rendered: props.rendered ?? undefined,
+    children: props.children || null, // Ensure children is never undefined
   };
   
   return (

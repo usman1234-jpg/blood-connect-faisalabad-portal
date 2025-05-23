@@ -199,7 +199,7 @@ const AddDonorForm = ({ onAddDonor, donors }: AddDonorFormProps) => {
                     <CommandInput placeholder="Search city..." />
                     <CommandEmpty>No city found.</CommandEmpty>
                     <CommandGroup>
-                      {uniqueCities.length > 0 ? uniqueCities.map((city) => (
+                      {uniqueCities.map((city) => (
                         <CommandItem
                           key={city}
                           value={city}
@@ -211,9 +211,8 @@ const AddDonorForm = ({ onAddDonor, donors }: AddDonorFormProps) => {
                         >
                           {city}
                         </CommandItem>
-                      )) : <CommandItem value="default-city">Add a city</CommandItem>}
+                      ))}
                       <CommandItem
-                        value="add-new"
                         onSelect={(value) => {
                           if (!uniqueCities.includes(value) && value.trim()) {
                             handleInputChange('city', value);
@@ -272,7 +271,7 @@ const AddDonorForm = ({ onAddDonor, donors }: AddDonorFormProps) => {
                     <CommandInput placeholder="Search department..." />
                     <CommandEmpty>No department found.</CommandEmpty>
                     <CommandGroup>
-                      {uniqueDepartments.length > 0 ? uniqueDepartments.map((dept) => (
+                      {uniqueDepartments.map((dept) => (
                         <CommandItem
                           key={dept}
                           value={dept}
@@ -284,9 +283,8 @@ const AddDonorForm = ({ onAddDonor, donors }: AddDonorFormProps) => {
                         >
                           {dept}
                         </CommandItem>
-                      )) : <CommandItem value="default-dept">Add a department</CommandItem>}
+                      ))}
                       <CommandItem
-                        value="add-new"
                         onSelect={(value) => {
                           if (!uniqueDepartments.includes(value) && value.trim()) {
                             handleInputChange('department', value);
@@ -389,6 +387,7 @@ const AddDonorForm = ({ onAddDonor, donors }: AddDonorFormProps) => {
               <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="livesInHostel" 
+                  ref={formRefs.livesInHostel}
                   checked={formData.livesInHostel}
                   onCheckedChange={(checked) => handleInputChange('livesInHostel', !!checked)}
                 />
