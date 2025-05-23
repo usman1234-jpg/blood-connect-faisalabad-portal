@@ -102,7 +102,7 @@ const CommandGroup = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || null, // Ensure children is never undefined
+    children: props.children || null,
   };
 
   return (
@@ -137,7 +137,7 @@ const CommandItem = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const safeProps = {
     ...props,
-    children: props.children || null, // Ensure children is never undefined
+    children: props.children || null,
   };
   
   return (
