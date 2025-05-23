@@ -21,6 +21,10 @@ const Command = React.forwardRef<
     label: props.label ?? undefined,
     shouldFilter: props.shouldFilter ?? undefined,
     loop: props.loop ?? undefined,
+    // Additional safeguards for other potentially undefined props
+    groups: props.groups ?? [],
+    options: props.options ?? [],
+    hidden: props.hidden ?? false,
   }
   
   return (
@@ -76,6 +80,8 @@ const CommandList = React.forwardRef<
   const safeProps = {
     ...props,
     children: props.children ?? null,
+    // Additional safeguards
+    items: Array.isArray(props.items) ? props.items : [],
   }
   
   return (
@@ -112,6 +118,8 @@ const CommandGroup = React.forwardRef<
     heading: props.heading ?? undefined,
     value: props.value ?? undefined,
     forceMount: props.forceMount ?? undefined,
+    // Additional safeguards
+    items: Array.isArray(props.items) ? props.items : [],
   };
 
   return (
@@ -152,6 +160,8 @@ const CommandItem = React.forwardRef<
     onSelect: props.onSelect ?? (() => {}),
     keywords: props.keywords ?? undefined,
     forceMount: props.forceMount ?? undefined,
+    // Additional safeguards
+    rendered: props.rendered ?? undefined,
   };
   
   return (
