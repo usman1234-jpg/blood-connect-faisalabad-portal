@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, User, Home } from 'lucide-react';
+import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, AlertCircle } from 'lucide-react';
 import { Donor, BloodGroup, bloodGroups, bloodCompatibility, canDonateTo, hasDonorGraduated } from '../types/donor';
 
 interface DonorSearchProps {
@@ -21,7 +21,6 @@ interface SearchFilters {
   city: string;
   university: string;
   phone: string;
-  gender: '' | 'male' | 'female' | 'other';
   availability: 'all' | 'available' | 'unavailable';
 }
 
@@ -31,7 +30,6 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     city: '',
     university: '',
     phone: '',
-    gender: '',
     availability: 'all'
   });
 
@@ -73,10 +71,6 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       filteredDonors = filteredDonors.filter(donor => 
         donor.contact.includes(filters.phone)
       );
-    }
-
-    if (filters.gender) {
-      filteredDonors = filteredDonors.filter(donor => donor.gender === filters.gender);
     }
 
     if (filters.availability === 'available') {
@@ -136,7 +130,6 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       city: '',
       university: '',
       phone: '',
-      gender: '',
       availability: 'all'
     });
     setSearchResults([]);
@@ -161,13 +154,12 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       'City', 
       'University', 
       'Department', 
-      'Semester',
-      'Gender',
+      'Semester', 
       'Blood Group', 
       'Last Donation Date', 
       'Next Donation Date', 
       'Available', 
-      'Lives in Hostel',
+      'Hospitalized',
       'Semester End Date',
       'Graduated'
     ];
@@ -175,18 +167,17 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     const csvData = donors.map(donor => [
       donor.name,
       donor.contact,
-      donor.city || '',
-      donor.university || '',
-      donor.department || '',
-      donor.semester || '',
-      donor.gender || 'male',
+      donor.city,
+      donor.university,
+      donor.department,
+      donor.semester,
       donor.bloodGroup,
-      donor.lastDonationDate || '',
-      donor.nextDonationDate || '',
+      donor.lastDonationDate || 'Never',
+      donor.nextDonationDate || 'N/A',
       isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
-      donor.livesInHostel ? 'Yes' : 'No',
-      donor.semesterEndDate || '',
-      donor.semesterEndDate && hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
+      donor.isHospitalized ? 'Yes' : 'No',
+      donor.semesterEndDate || 'N/A',
+      hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
     ]);
 
     const csvContent = [headers, ...csvData]
@@ -214,20 +205,16 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className={`transition-all hover:shadow-md shadow ${isAlternative ? 'border-orange-200 bg-orange-50' : ''} ${donor.livesInHostel ? 'border-blue-200' : ''}`}>
+      <Card className={`transition-all hover:shadow-md ${isAlternative ? 'border-orange-200 bg-orange-50' : ''} ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-lg">{donor.name}</h3>
-                <Badge variant="outline" className={`${donor.gender === 'male' ? 'bg-blue-100 text-blue-800' : donor.gender === 'female' ? 'bg-pink-100 text-pink-800' : 'bg-purple-100 text-purple-800'}`}>
-                  <User className="h-3 w-3 mr-1" />
-                  {donor.gender === 'male' ? 'Male' : donor.gender === 'female' ? 'Female' : 'Other'}
-                </Badge>
-                {donor.livesInHostel && (
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                    <Home className="h-3 w-3 mr-1" />
-                    Hostel
+                {donor.isHospitalized && (
+                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Hospitalized
                   </Badge>
                 )}
                 {hasGraduated && (
@@ -305,7 +292,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor="bloodGroup">Blood Group</Label>
               <Select value={filters.bloodGroup} onValueChange={(value) => setFilters(prev => ({ ...prev, bloodGroup: value as BloodGroup }))}>
@@ -344,21 +331,6 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
                   {universities.map((uni) => (
                     <SelectItem key={uni} value={uni}>{uni}</SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select value={filters.gender} onValueChange={(value: '' | 'male' | 'female' | 'other') => setFilters(prev => ({ ...prev, gender: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All genders" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Genders</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -10,8 +10,7 @@ export interface Donor {
   bloodGroup: BloodGroup;
   lastDonationDate: string;
   nextDonationDate?: string; // When they can donate next
-  livesInHostel: boolean;
-  gender: 'male' | 'female' | 'other';
+  isHospitalized: boolean;
   semesterEndDate?: string; // To track graduation/completion
 }
 

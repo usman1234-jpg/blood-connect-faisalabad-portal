@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
-import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart, User, Home } from 'lucide-react';
+import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart } from 'lucide-react';
 import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, hasDonorGraduated } from '../types/donor';
 
 interface DonorListProps {
@@ -33,8 +33,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
     donor.contact.includes(searchTerm) ||
     donor.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
     donor.university.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    donor.bloodGroup.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    donor.department.toLowerCase().includes(searchTerm.toLowerCase())
+    donor.bloodGroup.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Sort donors: available first, then by last donation date
@@ -133,20 +132,16 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
     const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className={`transition-all hover:shadow-md ${donor.livesInHostel ? 'border-blue-200' : ''} shadow`}>
+      <Card className={`transition-all hover:shadow-md ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-lg">{donor.name}</h3>
-                <Badge variant="outline" className={`${donor.gender === 'male' ? 'bg-blue-100 text-blue-800' : donor.gender === 'female' ? 'bg-pink-100 text-pink-800' : 'bg-purple-100 text-purple-800'}`}>
-                  <User className="h-3 w-3 mr-1" />
-                  {donor.gender === 'male' ? 'Male' : donor.gender === 'female' ? 'Female' : 'Other'}
-                </Badge>
-                {donor.livesInHostel && (
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                    <Home className="h-3 w-3 mr-1" />
-                    Hostel
+                {donor.isHospitalized && (
+                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Hospitalized
                   </Badge>
                 )}
                 {hasGraduated && (
@@ -208,7 +203,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
               onClick={() => handleEditDonor(donor)}
               variant="outline"
               size="sm"
-              className="flex-1 hover:bg-gray-50"
+              className="flex-1"
             >
               <Edit className="h-4 w-4 mr-1" />
               Edit
@@ -353,31 +348,6 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="editGender">Gender</Label>
-                  <RadioGroup
-                    value={editFormData.gender}
-                    onValueChange={(value) => setEditFormData(prev => prev ? { 
-                      ...prev, 
-                      gender: value as 'male' | 'female' | 'other'
-                    } : null)}
-                    className="flex space-x-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="male" id="editMale" />
-                      <Label htmlFor="editMale">Male</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="female" id="editFemale" />
-                      <Label htmlFor="editFemale">Female</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="other" id="editOther" />
-                      <Label htmlFor="editOther">Other</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="editBloodGroup">Blood Group</Label>
                   <Select 
                     value={editFormData.bloodGroup} 
@@ -431,14 +401,14 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
                 <div className="space-y-2 flex items-center">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="editLivesInHostel" 
-                      checked={editFormData.livesInHostel}
+                      id="editIsHospitalized" 
+                      checked={editFormData.isHospitalized}
                       onCheckedChange={(checked) => setEditFormData(prev => prev ? { 
                         ...prev, 
-                        livesInHostel: !!checked
+                        isHospitalized: !!checked
                       } : null)}
                     />
-                    <Label htmlFor="editLivesInHostel" className="cursor-pointer">Lives in Hostel</Label>
+                    <Label htmlFor="editIsHospitalized" className="cursor-pointer">Currently Hospitalized</Label>
                   </div>
                 </div>
 

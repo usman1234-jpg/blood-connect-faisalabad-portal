@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Search, Users, User, Calendar, Plus, Download, Heart, Home } from 'lucide-react';
+import { Search, Users, User, Calendar, Plus, Download, Heart } from 'lucide-react';
 import AddDonorForm from '../components/AddDonorForm';
 import DonorSearch from '../components/DonorSearch';
 import DonorList from '../components/DonorList';
@@ -28,8 +28,7 @@ const Index = () => {
         const updatedDonors = parsedDonors.map((donor: Donor) => ({
           ...donor,
           nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
-          livesInHostel: donor.livesInHostel || false,
-          gender: donor.gender || 'male',
+          isHospitalized: donor.isHospitalized || false,
           semesterEndDate: donor.semesterEndDate || ''
         }));
         setDonors(updatedDonors);
@@ -93,8 +92,8 @@ const Index = () => {
 
   // Dashboard statistics
   const totalDonors = donors.length;
-  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate)).length;
-  const hostelDonors = donors.filter(donor => donor.livesInHostel).length;
+  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate) && !donor.isHospitalized).length;
+  const hospitalizedDonors = donors.filter(donor => donor.isHospitalized).length;
 
   // Blood group distribution data
   const bloodGroupData = bloodGroups.map(group => ({
@@ -102,22 +101,6 @@ const Index = () => {
     count: donors.filter(donor => donor.bloodGroup === group).length,
     percentage: totalDonors > 0 ? ((donors.filter(donor => donor.bloodGroup === group).length / totalDonors) * 100).toFixed(1) : 0
   }));
-
-  // Gender distribution data
-  const genderData = [
-    {
-      name: 'Male',
-      value: donors.filter(donor => donor.gender === 'male').length,
-    },
-    {
-      name: 'Female',
-      value: donors.filter(donor => donor.gender === 'female').length,
-    },
-    {
-      name: 'Other',
-      value: donors.filter(donor => donor.gender === 'other').length,
-    }
-  ].filter(data => data.value > 0);
 
   // City distribution data
   const cityData = [...new Set(donors.map(donor => donor.city))]
@@ -149,32 +132,28 @@ const Index = () => {
       'City', 
       'University', 
       'Department', 
-      'Semester',
-      'Gender',
+      'Semester', 
       'Blood Group', 
       'Last Donation Date', 
       'Next Donation Date', 
       'Available', 
-      'Lives in Hostel',
-      'Semester End Date',
-      'Graduated'
+      'Hospitalized',
+      'Semester End Date'
     ];
     
     const csvData = donors.map(donor => [
       donor.name,
       donor.contact,
-      donor.city || '',
-      donor.university || '',
-      donor.department || '',
-      donor.semester || '',
-      donor.gender || 'male',
+      donor.city,
+      donor.university,
+      donor.department,
+      donor.semester,
       donor.bloodGroup,
-      donor.lastDonationDate || '',
-      donor.nextDonationDate || '',
+      donor.lastDonationDate || 'Never',
+      donor.nextDonationDate || 'N/A',
       isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
-      donor.livesInHostel ? 'Yes' : 'No',
-      donor.semesterEndDate || '',
-      donor.semesterEndDate && hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
+      donor.isHospitalized ? 'Yes' : 'No',
+      donor.semesterEndDate || 'N/A'
     ]);
 
     const csvContent = [headers, ...csvData]
@@ -270,14 +249,14 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-blue-400 to-blue-500 text-white">
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Hostel Residents</CardTitle>
-                  <Home className="h-4 w-4" />
+                  <CardTitle className="text-sm font-medium">Hospitalized</CardTitle>
+                  <Calendar className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{hostelDonors}</div>
-                  <p className="text-xs opacity-80">{totalDonors > 0 ? ((hostelDonors / totalDonors) * 100).toFixed(1) : 0}% of donors</p>
+                  <div className="text-2xl font-bold">{hospitalizedDonors}</div>
+                  <p className="text-xs opacity-80">Currently unavailable</p>
                 </CardContent>
               </Card>
             </div>
@@ -305,34 +284,6 @@ const Index = () => {
                         {bloodGroupData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gender Distribution</CardTitle>
-                  <CardDescription>Number of donors by gender</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={genderData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({name, value}) => `${name} (${value})`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        <Cell fill="#3b82f6" /> {/* Male */}
-                        <Cell fill="#ec4899" /> {/* Female */}
-                        <Cell fill="#8b5cf6" /> {/* Other */}
                       </Pie>
                       <Tooltip />
                     </PieChart>
@@ -405,7 +356,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="add-donor">
-            <AddDonorForm onAddDonor={addDonor} donors={donors} />
+            <AddDonorForm onAddDonor={addDonor} />
           </TabsContent>
 
           <TabsContent value="search">
