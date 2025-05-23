@@ -4,25 +4,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Edit, Phone, MapPin, Calendar, Search } from 'lucide-react';
-import { Donor, BloodGroup, bloodGroups } from '../types/donor';
+import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart } from 'lucide-react';
+import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, hasDonorGraduated } from '../types/donor';
 
 interface DonorListProps {
   donors: Donor[];
   onUpdateDonor: (donor: Donor) => void;
+  onRemoveDonor?: (id: string) => void;
   isDonorAvailable: (lastDonationDate: string) => boolean;
 }
 
-const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) => {
+const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: DonorListProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
   const [editFormData, setEditFormData] = useState<Donor | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [donorToDelete, setDonorToDelete] = useState<string | null>(null);
 
   const filteredDonors = donors.filter(donor =>
     donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,7 +59,16 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
     e.preventDefault();
     if (!editFormData) return;
 
-    onUpdateDonor(editFormData);
+    // Calculate next donation date if last donation date is provided
+    const nextDonationDate = editFormData.lastDonationDate ? 
+      calculateNextDonationDate(editFormData.lastDonationDate) : '';
+
+    const updatedDonor = {
+      ...editFormData,
+      nextDonationDate
+    };
+
+    onUpdateDonor(updatedDonor);
     setIsEditDialogOpen(false);
     setEditFormData(null);
     setSelectedDonor(null);
@@ -68,7 +81,14 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
 
   const handleUpdateLastDonation = (donor: Donor) => {
     const today = new Date().toISOString().split('T')[0];
-    const updatedDonor = { ...donor, lastDonationDate: today };
+    const nextDonationDate = calculateNextDonationDate(today);
+    
+    const updatedDonor = { 
+      ...donor, 
+      lastDonationDate: today,
+      nextDonationDate
+    };
+    
     onUpdateDonor(updatedDonor);
 
     toast({
@@ -77,40 +97,86 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
     });
   };
 
+  const confirmDeleteDonor = (id: string) => {
+    setDonorToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteDonor = () => {
+    if (donorToDelete && onRemoveDonor) {
+      onRemoveDonor(donorToDelete);
+      setIsDeleteDialogOpen(false);
+      setDonorToDelete(null);
+
+      toast({
+        title: 'Success',
+        description: 'Donor has been removed successfully.',
+      });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Trigger form submission if inside a form
+      const form = e.currentTarget.closest('form');
+      if (form) form.requestSubmit();
+    }
+  };
+
   const DonorCard = ({ donor }: { donor: Donor }) => {
     const available = isDonorAvailable(donor.lastDonationDate);
     const daysSinceLastDonation = donor.lastDonationDate 
       ? Math.floor((new Date().getTime() - new Date(donor.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24))
       : null;
+    const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className="transition-all hover:shadow-md">
+      <Card className={`transition-all hover:shadow-md ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
-              <h3 className="font-semibold text-lg">{donor.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg">{donor.name}</h3>
+                {donor.isHospitalized && (
+                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Hospitalized
+                  </Badge>
+                )}
+                {hasGraduated && (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                    <School className="h-3 w-3 mr-1" />
+                    Graduated
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-gray-600">{donor.university}</p>
               <p className="text-sm text-gray-500">{donor.department} - {donor.semester} Semester</p>
             </div>
             <div className="text-right">
-              <Badge variant={available ? 'default' : 'secondary'} className={available ? 'bg-green-500' : 'bg-gray-500'}>
+              <Badge 
+                variant={available ? 'default' : 'secondary'} 
+                className={`${available ? 'bg-green-500' : 'bg-gray-500'} flex items-center gap-1`}
+              >
+                {available ? <Heart className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                 {available ? 'Available' : 'Not Available'}
               </Badge>
-              <div className="text-lg font-bold text-red-600 mt-1">{donor.bloodGroup}</div>
+              <div className="text-2xl font-bold text-red-600 mt-1">{donor.bloodGroup}</div>
             </div>
           </div>
           
-          <div className="space-y-1 text-sm mb-4">
+          <div className="space-y-1 text-sm mb-4 border-t border-b py-2 my-2 border-gray-100">
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              {donor.contact}
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span>{donor.contact}</span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              {donor.city}
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span>{donor.city}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4 w-4 text-gray-500" />
               {donor.lastDonationDate ? (
                 <span>
                   Last donation: {new Date(donor.lastDonationDate).toLocaleDateString()}
@@ -122,6 +188,14 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
                 <span className="text-gray-500">No previous donations recorded</span>
               )}
             </div>
+            {donor.nextDonationDate && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-gray-500" />
+                <span className="text-green-600">
+                  Can donate again: {new Date(donor.nextDonationDate).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -142,6 +216,16 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
             >
               Mark Donated Today
             </Button>
+            {onRemoveDonor && (
+              <Button
+                onClick={() => confirmDeleteDonor(donor.id)}
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -169,6 +253,7 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                onKeyDown={handleKeyDown}
               />
             </div>
           </div>
@@ -204,7 +289,7 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
           </DialogHeader>
           
           {editFormData && (
-            <form onSubmit={handleUpdateDonor} className="space-y-4">
+            <form onSubmit={handleUpdateDonor} className="space-y-4" onKeyDown={handleKeyDown}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="editName">Full Name</Label>
@@ -285,9 +370,61 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
                     id="editLastDonationDate"
                     type="date"
                     value={editFormData.lastDonationDate}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, lastDonationDate: e.target.value } : null)}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      setEditFormData(prev => {
+                        if (!prev) return null;
+                        const nextDonationDate = newDate ? calculateNextDonationDate(newDate) : '';
+                        return { 
+                          ...prev, 
+                          lastDonationDate: newDate,
+                          nextDonationDate
+                        };
+                      });
+                    }}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editSemesterEndDate">Semester End Date</Label>
+                  <Input
+                    id="editSemesterEndDate"
+                    type="date"
+                    value={editFormData.semesterEndDate || ''}
+                    onChange={(e) => setEditFormData(prev => prev ? { 
+                      ...prev, 
+                      semesterEndDate: e.target.value
+                    } : null)}
+                  />
+                </div>
+
+                <div className="space-y-2 flex items-center">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="editIsHospitalized" 
+                      checked={editFormData.isHospitalized}
+                      onCheckedChange={(checked) => setEditFormData(prev => prev ? { 
+                        ...prev, 
+                        isHospitalized: !!checked
+                      } : null)}
+                    />
+                    <Label htmlFor="editIsHospitalized" className="cursor-pointer">Currently Hospitalized</Label>
+                  </div>
+                </div>
+
+                {editFormData.lastDonationDate && (
+                  <div className="space-y-2">
+                    <Label htmlFor="editNextDonationDate">Next Possible Donation Date</Label>
+                    <Input
+                      id="editNextDonationDate"
+                      type="date"
+                      value={editFormData.nextDonationDate || ''}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                    <p className="text-xs text-gray-500">Automatically calculated (3 months after last donation)</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
@@ -300,6 +437,30 @@ const DonorList = ({ donors, onUpdateDonor, isDonorAvailable }: DonorListProps) 
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove Donor</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this donor? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteDonor}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remove Donor
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

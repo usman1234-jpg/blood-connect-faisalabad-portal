@@ -6,22 +6,36 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Search, Users, User, Calendar, Plus, Download } from 'lucide-react';
+import { Search, Users, User, Calendar, Plus, Download, Heart } from 'lucide-react';
 import AddDonorForm from '../components/AddDonorForm';
 import DonorSearch from '../components/DonorSearch';
 import DonorList from '../components/DonorList';
-import { Donor, bloodGroups, bloodCompatibility } from '../types/donor';
+import { Donor, bloodGroups, bloodCompatibility, calculateNextDonationDate } from '../types/donor';
 
 const Index = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
 
   // Load donors from localStorage on component mount
   useEffect(() => {
     const savedDonors = localStorage.getItem('bloodDonors');
     if (savedDonors) {
-      setDonors(JSON.parse(savedDonors));
+      try {
+        const parsedDonors = JSON.parse(savedDonors);
+        // Update donor objects to include new fields if they don't have them
+        const updatedDonors = parsedDonors.map((donor: Donor) => ({
+          ...donor,
+          nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
+          isHospitalized: donor.isHospitalized || false,
+          semesterEndDate: donor.semesterEndDate || ''
+        }));
+        setDonors(updatedDonors);
+      } catch (error) {
+        console.error("Error parsing donors from localStorage:", error);
+        setDonors([]);
+      }
     }
   }, []);
 
@@ -30,10 +44,29 @@ const Index = () => {
     localStorage.setItem('bloodDonors', JSON.stringify(donors));
   }, [donors]);
 
+  // Handle tab changes
+  const handleTabChange = (value: string) => {
+    if (activeTab === 'search') {
+      // Save search tab state when leaving search
+      setPersistedSearchTab('search');
+    }
+    
+    // When returning to search from another tab, maintain the search results
+    if (value === 'search' && persistedSearchTab === 'search') {
+      // Just switch to search tab, don't clear results
+    } else if (value === 'search') {
+      // First time visiting search or explicitly cleared search
+      setSearchResults([]);
+    }
+    
+    setActiveTab(value);
+  };
+
   const addDonor = (donor: Omit<Donor, 'id'>) => {
     const newDonor: Donor = {
       ...donor,
       id: Date.now().toString(),
+      nextDonationDate: donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''
     };
     setDonors([...donors, newDonor]);
   };
@@ -42,6 +75,10 @@ const Index = () => {
     setDonors(donors.map(donor => 
       donor.id === updatedDonor.id ? updatedDonor : donor
     ));
+  };
+
+  const removeDonor = (id: string) => {
+    setDonors(donors.filter(donor => donor.id !== id));
   };
 
   // Calculate if donor is available (3+ months since last donation)
@@ -55,7 +92,8 @@ const Index = () => {
 
   // Dashboard statistics
   const totalDonors = donors.length;
-  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate)).length;
+  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate) && !donor.isHospitalized).length;
+  const hospitalizedDonors = donors.filter(donor => donor.isHospitalized).length;
 
   // Blood group distribution data
   const bloodGroupData = bloodGroups.map(group => ({
@@ -66,6 +104,7 @@ const Index = () => {
 
   // City distribution data
   const cityData = [...new Set(donors.map(donor => donor.city))]
+    .filter(Boolean)
     .map(city => ({
       city,
       count: donors.filter(donor => donor.city === city).length
@@ -75,6 +114,7 @@ const Index = () => {
 
   // University distribution data
   const universityData = [...new Set(donors.map(donor => donor.university))]
+    .filter(Boolean)
     .map(university => ({
       university,
       count: donors.filter(donor => donor.university === university).length
@@ -84,7 +124,23 @@ const Index = () => {
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
 
   const exportToCSV = () => {
-    const headers = ['Name', 'Contact', 'City', 'University', 'Department', 'Semester', 'Blood Group', 'Last Donation Date', 'Available'];
+    if (donors.length === 0) return;
+    
+    const headers = [
+      'Name', 
+      'Contact', 
+      'City', 
+      'University', 
+      'Department', 
+      'Semester', 
+      'Blood Group', 
+      'Last Donation Date', 
+      'Next Donation Date', 
+      'Available', 
+      'Hospitalized',
+      'Semester End Date'
+    ];
+    
     const csvData = donors.map(donor => [
       donor.name,
       donor.contact,
@@ -94,18 +150,25 @@ const Index = () => {
       donor.semester,
       donor.bloodGroup,
       donor.lastDonationDate || 'Never',
-      isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No'
+      donor.nextDonationDate || 'N/A',
+      isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
+      donor.isHospitalized ? 'Yes' : 'No',
+      donor.semesterEndDate || 'N/A'
     ]);
 
     const csvContent = [headers, ...csvData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(cell => {
+        // Handle strings that might contain commas by quoting them
+        const cellStr = String(cell);
+        return cellStr.includes(',') ? `"${cellStr}"` : cellStr;
+      }).join(','))
       .join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'blood_donors.csv';
+    a.download = `blood_donors_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -129,7 +192,7 @@ const Index = () => {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart className="h-4 w-4" />
@@ -178,7 +241,7 @@ const Index = () => {
               <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Blood Groups</CardTitle>
-                  <Calendar className="h-4 w-4" />
+                  <Heart className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{bloodGroupData.filter(g => g.count > 0).length}</div>
@@ -186,14 +249,14 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Universities</CardTitle>
-                  <Users className="h-4 w-4" />
+                  <CardTitle className="text-sm font-medium">Hospitalized</CardTitle>
+                  <Calendar className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{universityData.length}</div>
-                  <p className="text-xs opacity-80">Participating</p>
+                  <div className="text-2xl font-bold">{hospitalizedDonors}</div>
+                  <p className="text-xs opacity-80">Currently unavailable</p>
                 </CardContent>
               </Card>
             </div>
@@ -308,6 +371,7 @@ const Index = () => {
             <DonorList 
               donors={donors} 
               onUpdateDonor={updateDonor}
+              onRemoveDonor={removeDonor}
               isDonorAvailable={isDonorAvailable}
             />
           </TabsContent>

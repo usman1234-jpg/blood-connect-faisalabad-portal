@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Donor, BloodGroup, bloodGroups } from '../types/donor';
+import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate } from '../types/donor';
 import { UserPlus } from 'lucide-react';
 
 interface AddDonorFormProps {
@@ -15,7 +16,7 @@ interface AddDonorFormProps {
 
 const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     name: '',
     contact: '',
     city: '',
@@ -23,8 +24,13 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
     department: '',
     semester: '',
     bloodGroup: '' as BloodGroup,
-    lastDonationDate: ''
-  });
+    lastDonationDate: '',
+    nextDonationDate: '',
+    isHospitalized: false,
+    semesterEndDate: ''
+  };
+  
+  const [formData, setFormData] = useState(initialFormState);
 
   const universities = [
     'Riphah University Faisalabad',
@@ -50,7 +56,14 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
       return;
     }
 
-    onAddDonor(formData);
+    // Calculate next donation date if last donation date is provided
+    const nextDonationDate = formData.lastDonationDate ? 
+      calculateNextDonationDate(formData.lastDonationDate) : '';
+
+    onAddDonor({
+      ...formData,
+      nextDonationDate
+    });
     
     toast({
       title: 'Success',
@@ -59,23 +72,32 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
     });
 
     // Reset form
-    setFormData({
-      name: '',
-      contact: '',
-      city: '',
-      university: '',
-      department: '',
-      semester: '',
-      bloodGroup: '' as BloodGroup,
-      lastDonationDate: ''
+    setFormData(initialFormState);
+  };
+
+  const handleInputChange = (field: keyof typeof formData, value: string | boolean) => {
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If updating last donation date, also calculate next donation date
+      if (field === 'lastDonationDate' && typeof value === 'string') {
+        newData.nextDonationDate = value ? calculateNextDonationDate(value) : '';
+      }
+      
+      return newData;
     });
   };
 
-  const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  // Handle Enter key press for submission
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form) form.requestSubmit();
+    }
   };
 
   return (
@@ -90,7 +112,7 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" onKeyDown={handleKeyDown}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
@@ -185,6 +207,42 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
                 onChange={(e) => handleInputChange('lastDonationDate', e.target.value)}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="semesterEndDate">Semester End Date</Label>
+              <Input
+                id="semesterEndDate"
+                type="date"
+                value={formData.semesterEndDate || ''}
+                onChange={(e) => handleInputChange('semesterEndDate', e.target.value)}
+                placeholder="When will the semester end?"
+              />
+            </div>
+
+            <div className="space-y-2 flex items-center">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="isHospitalized" 
+                  checked={formData.isHospitalized}
+                  onCheckedChange={(checked) => handleInputChange('isHospitalized', !!checked)}
+                />
+                <Label htmlFor="isHospitalized" className="cursor-pointer">Currently Hospitalized</Label>
+              </div>
+            </div>
+
+            {formData.lastDonationDate && (
+              <div className="space-y-2">
+                <Label htmlFor="nextDonationDate">Next Possible Donation Date</Label>
+                <Input
+                  id="nextDonationDate"
+                  type="date"
+                  value={formData.nextDonationDate}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500">Automatically calculated (3 months after last donation)</p>
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">

@@ -9,6 +9,9 @@ export interface Donor {
   semester: string;
   bloodGroup: BloodGroup;
   lastDonationDate: string;
+  nextDonationDate?: string; // When they can donate next
+  isHospitalized: boolean;
+  semesterEndDate?: string; // To track graduation/completion
 }
 
 export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
@@ -35,4 +38,22 @@ export const canDonateTo: Record<BloodGroup, BloodGroup[]> = {
   'AB-': ['AB+', 'AB-'],
   'O+': ['A+', 'B+', 'AB+', 'O+'],
   'O-': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+};
+
+// Helper function to calculate next donation date (3 months after last donation)
+export const calculateNextDonationDate = (lastDonationDate: string): string => {
+  if (!lastDonationDate) return '';
+  
+  const date = new Date(lastDonationDate);
+  date.setMonth(date.getMonth() + 3);
+  return date.toISOString().split('T')[0];
+};
+
+// Helper function to check if a donor has completed their semester
+export const hasDonorGraduated = (semesterEndDate?: string): boolean => {
+  if (!semesterEndDate) return false;
+  
+  const endDate = new Date(semesterEndDate);
+  const today = new Date();
+  return endDate < today;
 };

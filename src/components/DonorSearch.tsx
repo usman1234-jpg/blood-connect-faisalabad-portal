@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Phone, Users, MapPin } from 'lucide-react';
-import { Donor, BloodGroup, bloodGroups, bloodCompatibility, canDonateTo } from '../types/donor';
+import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, AlertCircle } from 'lucide-react';
+import { Donor, BloodGroup, bloodGroups, bloodCompatibility, canDonateTo, hasDonorGraduated } from '../types/donor';
 
 interface DonorSearchProps {
   donors: Donor[];
@@ -35,9 +35,17 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
 
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
   const [alternativeResults, setAlternativeResults] = useState<Donor[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const cities = [...new Set(donors.map(donor => donor.city))].filter(Boolean).sort();
   const universities = [...new Set(donors.map(donor => donor.university))].filter(Boolean).sort();
+
+  // Persist search results when switching tabs
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      onSearchResults(searchResults);
+    }
+  }, [searchResults, onSearchResults]);
 
   const handleSearch = () => {
     let filteredDonors = [...donors];
@@ -86,6 +94,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     });
 
     setSearchResults(filteredDonors);
+    setHasSearched(true);
 
     // Find alternative blood group donors if searching by blood group
     if (filters.bloodGroup) {
@@ -125,7 +134,67 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     });
     setSearchResults([]);
     setAlternativeResults([]);
+    setHasSearched(false);
     onSearchResults([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  const exportToCSV = (donors: Donor[]) => {
+    if (donors.length === 0) return;
+
+    const headers = [
+      'Name', 
+      'Contact', 
+      'City', 
+      'University', 
+      'Department', 
+      'Semester', 
+      'Blood Group', 
+      'Last Donation Date', 
+      'Next Donation Date', 
+      'Available', 
+      'Hospitalized',
+      'Semester End Date',
+      'Graduated'
+    ];
+    
+    const csvData = donors.map(donor => [
+      donor.name,
+      donor.contact,
+      donor.city,
+      donor.university,
+      donor.department,
+      donor.semester,
+      donor.bloodGroup,
+      donor.lastDonationDate || 'Never',
+      donor.nextDonationDate || 'N/A',
+      isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
+      donor.isHospitalized ? 'Yes' : 'No',
+      donor.semesterEndDate || 'N/A',
+      hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(cell => {
+        // Handle strings that might contain commas by quoting them
+        const cellStr = String(cell);
+        return cellStr.includes(',') ? `"${cellStr}"` : cellStr;
+      }).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blood_donors_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const DonorCard = ({ donor, isAlternative = false }: { donor: Donor; isAlternative?: boolean }) => {
@@ -133,43 +202,76 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     const daysSinceLastDonation = donor.lastDonationDate 
       ? Math.floor((new Date().getTime() - new Date(donor.lastDonationDate).getTime()) / (1000 * 60 * 60 * 24))
       : null;
+    const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className={`transition-all hover:shadow-md ${isAlternative ? 'border-orange-200 bg-orange-50' : ''}`}>
+      <Card className={`transition-all hover:shadow-md ${isAlternative ? 'border-orange-200 bg-orange-50' : ''} ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <h3 className="font-semibold text-lg">{donor.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg">{donor.name}</h3>
+                {donor.isHospitalized && (
+                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Hospitalized
+                  </Badge>
+                )}
+                {hasGraduated && (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                    <School className="h-3 w-3 mr-1" />
+                    Graduated
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-gray-600">{donor.university}</p>
               <p className="text-sm text-gray-500">{donor.department} - {donor.semester} Semester</p>
             </div>
             <div className="text-right">
-              <Badge variant={available ? 'default' : 'secondary'} className={available ? 'bg-green-500' : 'bg-gray-500'}>
+              <Badge 
+                variant={available ? 'default' : 'secondary'} 
+                className={`${available ? 'bg-green-500' : 'bg-gray-500'} flex items-center gap-1`}
+              >
+                {available ? <Heart className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                 {available ? 'Available' : 'Not Available'}
               </Badge>
-              <div className="text-lg font-bold text-red-600 mt-1">{donor.bloodGroup}</div>
+              <div className="text-2xl font-bold text-red-600 mt-1">{donor.bloodGroup}</div>
             </div>
           </div>
           
-          <div className="space-y-1 text-sm">
+          <div className="space-y-1 text-sm border-t border-b py-2 my-2 border-gray-100">
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              {donor.contact}
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span>{donor.contact}</span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              {donor.city}
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span>{donor.city}</span>
             </div>
             {donor.lastDonationDate && (
               <div className="text-gray-600">
-                Last donation: {new Date(donor.lastDonationDate).toLocaleDateString()}
-                {daysSinceLastDonation && (
-                  <span className="ml-2">({daysSinceLastDonation} days ago)</span>
-                )}
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  Last donation: {new Date(donor.lastDonationDate).toLocaleDateString()}
+                  {daysSinceLastDonation && (
+                    <span className="ml-2">({daysSinceLastDonation} days ago)</span>
+                  )}
+                </div>
               </div>
             )}
             {!donor.lastDonationDate && (
-              <div className="text-gray-600">No previous donations recorded</div>
+              <div className="text-gray-600">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  No previous donations recorded
+                </div>
+              </div>
+            )}
+            {donor.nextDonationDate && (
+              <div className="flex items-center gap-2 text-green-600">
+                <Heart className="h-4 w-4" />
+                <span>Can donate again: {new Date(donor.nextDonationDate).toLocaleDateString()}</span>
+              </div>
             )}
           </div>
         </CardContent>
@@ -240,6 +342,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
                 value={filters.phone}
                 onChange={(e) => setFilters(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="Search by phone"
+                onKeyDown={handleKeyDown}
               />
             </div>
 
@@ -272,18 +375,32 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
 
       {searchResults.length > 0 && (
         <Tabs defaultValue="direct" className="w-full">
-          <TabsList>
-            <TabsTrigger value="direct" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Direct Matches ({searchResults.length})
-            </TabsTrigger>
-            {alternativeResults.length > 0 && (
-              <TabsTrigger value="alternatives" className="flex items-center gap-2">
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="direct" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Compatible Donors ({alternativeResults.length})
+                Direct Matches ({searchResults.length})
               </TabsTrigger>
-            )}
-          </TabsList>
+              {alternativeResults.length > 0 && (
+                <TabsTrigger value="alternatives" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Compatible Donors ({alternativeResults.length})
+                </TabsTrigger>
+              )}
+            </TabsList>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => exportToCSV(searchResults)}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export Results to CSV
+              </Button>
+            </div>
+          </div>
 
           <TabsContent value="direct" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -306,12 +423,23 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
                   <DonorCard key={donor.id} donor={donor} isAlternative />
                 ))}
               </div>
+              <div className="mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => exportToCSV(alternativeResults)}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Compatible Donors to CSV
+                </Button>
+              </div>
             </TabsContent>
           )}
         </Tabs>
       )}
 
-      {searchResults.length === 0 && (filters.bloodGroup || filters.city || filters.university || filters.phone) && (
+      {hasSearched && searchResults.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
             <Search className="h-12 w-12 mx-auto text-gray-400 mb-4" />
