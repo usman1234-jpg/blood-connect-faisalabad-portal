@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, AlertCircle } from 'lucide-react';
+import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, Home } from 'lucide-react';
 import { Donor, BloodGroup, bloodGroups, bloodCompatibility, canDonateTo, hasDonorGraduated } from '../types/donor';
 
 interface DonorSearchProps {
@@ -205,20 +205,23 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className={`transition-all hover:shadow-md ${isAlternative ? 'border-orange-200 bg-orange-50' : ''} ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
+      <Card className={`transition-all hover:shadow-md ${isAlternative ? 'border-orange-200 bg-orange-50' : ''}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-lg">{donor.name}</h3>
-                {donor.isHospitalized && (
-                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Hospitalized
+                <Badge variant="outline" className={`${donor.gender === 'Male' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-pink-100 text-pink-800 border-pink-300'}`}>
+                  {donor.gender}
+                </Badge>
+                {donor.isHostelResident && (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                    <Home className="h-3 w-3 mr-1" />
+                    Hostel
                   </Badge>
                 )}
                 {hasGraduated && (
-                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                  <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
                     <School className="h-3 w-3 mr-1" />
                     Graduated
                   </Badge>

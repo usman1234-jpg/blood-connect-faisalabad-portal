@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ const Index = () => {
           ...donor,
           gender: donor.gender || 'Male',
           nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
-          isHostelResident: donor.isHostelResident !== undefined ? donor.isHostelResident : donor.isHospitalized || false,
+          isHostelResident: donor.isHostelResident !== undefined ? donor.isHostelResident : false,
           semesterEndDate: donor.semesterEndDate || ''
         }));
         setDonors(updatedDonors);
@@ -297,27 +296,31 @@ const Index = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Gender Distribution</CardTitle>
-                  <CardDescription>Male vs Female donors</CardDescription>
+                  <CardTitle>University Distribution</CardTitle>
+                  <CardDescription>Donors by university (hover for details)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={genderData.filter(d => d.count > 0)}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({gender, percentage}) => `${gender} (${percentage}%)`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
-                      >
-                        <Cell fill="#3b82f6" />
-                        <Cell fill="#ec4899" />
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
+                    <BarChart data={universityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="shortName" 
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis />
+                      <Tooltip 
+                        formatter={(value, name, props) => [
+                          `${value} donors`,
+                          props.payload.university
+                        ]}
+                        labelFormatter={(label) => ''}
+                      />
+                      <Bar dataKey="count" fill="#3b82f6">
+                        {universityData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -342,32 +345,26 @@ const Index = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>University Distribution</CardTitle>
-                  <CardDescription>Hover over segments to see university names</CardDescription>
+                  <CardTitle>Gender Distribution</CardTitle>
+                  <CardDescription>Male vs Female donors</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={universityData}
+                        data={genderData.filter(d => d.count > 0)}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({shortName}) => shortName}
+                        label={({gender, percentage}) => `${gender} (${percentage}%)`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="count"
                       >
-                        {universityData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#ec4899" />
                       </Pie>
-                      <Tooltip 
-                        formatter={(value, name, props) => [
-                          `${value} donors`,
-                          props.payload.university
-                        ]}
-                      />
+                      <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 </CardContent>

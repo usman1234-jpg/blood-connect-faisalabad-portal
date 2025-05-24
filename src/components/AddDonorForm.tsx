@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate } from '../types/donor';
+import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, universities } from '../types/donor';
 import { UserPlus } from 'lucide-react';
 
 interface AddDonorFormProps {
@@ -33,21 +32,6 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
   };
   
   const [formData, setFormData] = useState(initialFormState);
-
-  const universities = [
-    'Riphah University Faisalabad',
-    'University of Agriculture Faisalabad',
-    'Government College University Faisalabad',
-    'National Textile University',
-    'University of Faisalabad',
-    'Lahore College for Women University',
-    'University of Central Punjab',
-    'COMSATS University Islamabad',
-    'Superior University',
-    'University of Engineering and Technology',
-    'Allama Iqbal Open University',
-    'Other'
-  ];
 
   const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 

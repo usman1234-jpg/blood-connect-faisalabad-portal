@@ -31,7 +31,7 @@ export const bloodCompatibility: Record<BloodGroup, BloodGroup[]> = {
   'O-': ['O-']
 };
 
-// Updated donation compatibility
+// Updated donation compatibility - O- is universal donor, AB+ is universal recipient
 export const canDonateTo: Record<BloodGroup, BloodGroup[]> = {
   'A+': ['A+', 'AB+'],
   'A-': ['A+', 'A-', 'AB+', 'AB-'],
@@ -60,3 +60,28 @@ export const hasDonorGraduated = (semesterEndDate?: string): boolean => {
   const today = new Date();
   return endDate < today;
 };
+
+// Extended universities list
+export const universities = [
+  'Riphah University Faisalabad',
+  'University of Agriculture Faisalabad', 
+  'Government College University Faisalabad',
+  'National Textile University',
+  'University of Faisalabad',
+  'Lahore College for Women University',
+  'University of Central Punjab',
+  'COMSATS University Islamabad',
+  'Superior University',
+  'University of Engineering and Technology',
+  'Allama Iqbal Open University',
+  'University of Management and Technology',
+  'Punjab University',
+  'Kinnaird College for Women',
+  'Forman Christian College',
+  'FAST National University',
+  'Beaconhouse National University',
+  'Lahore University of Management Sciences',
+  'University of Health Sciences',
+  'Government College University Lahore',
+  'Other'
+];

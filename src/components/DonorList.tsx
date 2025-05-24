@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart } from 'lucide-react';
-import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, hasDonorGraduated } from '../types/donor';
+import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart, Home } from 'lucide-react';
+import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, hasDonorGraduated, universities } from '../types/donor';
 
 interface DonorListProps {
   donors: Donor[];
@@ -132,26 +131,29 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
     const hasGraduated = hasDonorGraduated(donor.semesterEndDate);
 
     return (
-      <Card className={`transition-all hover:shadow-md ${donor.isHospitalized ? 'border-orange-400' : ''}`}>
+      <Card className="transition-all hover:shadow-md">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-3">
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-lg">{donor.name}</h3>
-                {donor.isHospitalized && (
-                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Hospitalized
+                <Badge variant="outline" className={`${donor.gender === 'Male' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-pink-100 text-pink-800 border-pink-300'}`}>
+                  {donor.gender}
+                </Badge>
+                {donor.isHostelResident && (
+                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                    <Home className="h-3 w-3 mr-1" />
+                    Hostel
                   </Badge>
                 )}
                 {hasGraduated && (
-                  <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-300">
+                  <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
                     <School className="h-3 w-3 mr-1" />
                     Graduated
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-600">{donor.university}</p>
+              <p className="text-sm text-gray-600 mt-1">{donor.university}</p>
               <p className="text-sm text-gray-500">{donor.department} - {donor.semester} Semester</p>
             </div>
             <div className="text-right">
@@ -322,11 +324,19 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
 
                 <div className="space-y-2">
                   <Label htmlFor="editUniversity">University</Label>
-                  <Input
-                    id="editUniversity"
-                    value={editFormData.university}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, university: e.target.value } : null)}
-                  />
+                  <Select 
+                    value={editFormData.university} 
+                    onValueChange={(value) => setEditFormData(prev => prev ? { ...prev, university: value } : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {universities.map((uni) => (
+                        <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -401,14 +411,14 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
                 <div className="space-y-2 flex items-center">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="editIsHospitalized" 
-                      checked={editFormData.isHospitalized}
+                      id="editIsHostelResident" 
+                      checked={editFormData.isHostelResident}
                       onCheckedChange={(checked) => setEditFormData(prev => prev ? { 
                         ...prev, 
-                        isHospitalized: !!checked
+                        isHostelResident: !!checked
                       } : null)}
                     />
-                    <Label htmlFor="editIsHospitalized" className="cursor-pointer">Currently Hospitalized</Label>
+                    <Label htmlFor="editIsHostelResident" className="cursor-pointer">Lives in Hostel</Label>
                   </div>
                 </div>
 
