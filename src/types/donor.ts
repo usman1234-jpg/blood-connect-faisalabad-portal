@@ -7,10 +7,11 @@ export interface Donor {
   university: string;
   department: string;
   semester: string;
+  gender: 'Male' | 'Female';
   bloodGroup: BloodGroup;
   lastDonationDate: string;
   nextDonationDate?: string; // When they can donate next
-  isHospitalized: boolean;
+  isHostelResident: boolean;
   semesterEndDate?: string; // To track graduation/completion
 }
 
@@ -18,17 +19,19 @@ export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
 
 export const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
+// Updated blood compatibility based on medical standards
 export const bloodCompatibility: Record<BloodGroup, BloodGroup[]> = {
   'A+': ['A+', 'A-', 'O+', 'O-'],
   'A-': ['A-', 'O-'],
   'B+': ['B+', 'B-', 'O+', 'O-'],
   'B-': ['B-', 'O-'],
-  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Universal recipient
   'AB-': ['A-', 'B-', 'AB-', 'O-'],
   'O+': ['O+', 'O-'],
   'O-': ['O-']
 };
 
+// Updated donation compatibility
 export const canDonateTo: Record<BloodGroup, BloodGroup[]> = {
   'A+': ['A+', 'AB+'],
   'A-': ['A+', 'A-', 'AB+', 'AB-'],
@@ -37,7 +40,7 @@ export const canDonateTo: Record<BloodGroup, BloodGroup[]> = {
   'AB+': ['AB+'],
   'AB-': ['AB+', 'AB-'],
   'O+': ['A+', 'B+', 'AB+', 'O+'],
-  'O-': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+  'O-': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] // Universal donor
 };
 
 // Helper function to calculate next donation date (3 months after last donation)

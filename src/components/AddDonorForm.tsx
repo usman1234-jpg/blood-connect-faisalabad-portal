@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate } from '../types/donor';
 import { UserPlus } from 'lucide-react';
@@ -23,10 +24,11 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
     university: '',
     department: '',
     semester: '',
+    gender: 'Male' as 'Male' | 'Female',
     bloodGroup: '' as BloodGroup,
     lastDonationDate: '',
     nextDonationDate: '',
-    isHospitalized: false,
+    isHostelResident: false,
     semesterEndDate: ''
   };
   
@@ -39,6 +41,11 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
     'National Textile University',
     'University of Faisalabad',
     'Lahore College for Women University',
+    'University of Central Punjab',
+    'COMSATS University Islamabad',
+    'Superior University',
+    'University of Engineering and Technology',
+    'Allama Iqbal Open University',
     'Other'
   ];
 
@@ -71,7 +78,7 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
       variant: 'default'
     });
 
-    // Reset form
+    // Reset form to initial state
     setFormData(initialFormState);
   };
 
@@ -91,65 +98,59 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
     });
   };
 
-  // Handle Enter key press for submission
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const form = e.currentTarget.closest('form');
-      if (form) form.requestSubmit();
-    }
-  };
-
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5" />
+    <Card className="max-w-4xl mx-auto shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-t-lg">
+        <CardTitle className="flex items-center gap-2 text-2xl">
+          <UserPlus className="h-6 w-6" />
           Add New Donor
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-red-100">
           Register a new blood donor in the system
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6" onKeyDown={handleKeyDown}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
+              <Label htmlFor="name" className="text-sm font-semibold">Full Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Enter full name"
+                className="border-2 focus:border-red-400"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contact">Contact Number *</Label>
+              <Label htmlFor="contact" className="text-sm font-semibold">Contact Number *</Label>
               <Input
                 id="contact"
                 value={formData.contact}
                 onChange={(e) => handleInputChange('contact', e.target.value)}
                 placeholder="03xxxxxxxxx"
+                className="border-2 focus:border-red-400"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city" className="text-sm font-semibold">City</Label>
               <Input
                 id="city"
                 value={formData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 placeholder="Enter city"
+                className="border-2 focus:border-red-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="university">University</Label>
+              <Label htmlFor="university" className="text-sm font-semibold">University</Label>
               <Select value={formData.university} onValueChange={(value) => handleInputChange('university', value)}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 focus:border-red-400">
                   <SelectValue placeholder="Select university" />
                 </SelectTrigger>
                 <SelectContent>
@@ -161,19 +162,20 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="department">Department</Label>
+              <Label htmlFor="department" className="text-sm font-semibold">Department</Label>
               <Input
                 id="department"
                 value={formData.department}
                 onChange={(e) => handleInputChange('department', e.target.value)}
                 placeholder="e.g., Computer Science"
+                className="border-2 focus:border-red-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="semester">Semester</Label>
+              <Label htmlFor="semester" className="text-sm font-semibold">Semester</Label>
               <Select value={formData.semester} onValueChange={(value) => handleInputChange('semester', value)}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 focus:border-red-400">
                   <SelectValue placeholder="Select semester" />
                 </SelectTrigger>
                 <SelectContent>
@@ -184,69 +186,91 @@ const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
               </Select>
             </div>
 
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Gender *</Label>
+              <RadioGroup 
+                value={formData.gender} 
+                onValueChange={(value) => handleInputChange('gender', value)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Male" id="male" />
+                  <Label htmlFor="male" className="cursor-pointer">Male</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Female" id="female" />
+                  <Label htmlFor="female" className="cursor-pointer">Female</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="bloodGroup">Blood Group *</Label>
+              <Label htmlFor="bloodGroup" className="text-sm font-semibold">Blood Group *</Label>
               <Select value={formData.bloodGroup} onValueChange={(value) => handleInputChange('bloodGroup', value as BloodGroup)}>
-                <SelectTrigger>
+                <SelectTrigger className="border-2 focus:border-red-400">
                   <SelectValue placeholder="Select blood group" />
                 </SelectTrigger>
                 <SelectContent>
                   {bloodGroups.map((group) => (
-                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                    <SelectItem key={group} value={group}>
+                      <span className="font-semibold text-red-600">{group}</span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastDonationDate">Last Donation Date</Label>
+              <Label htmlFor="lastDonationDate" className="text-sm font-semibold">Last Donation Date</Label>
               <Input
                 id="lastDonationDate"
                 type="date"
                 value={formData.lastDonationDate}
                 onChange={(e) => handleInputChange('lastDonationDate', e.target.value)}
+                className="border-2 focus:border-red-400"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="semesterEndDate">Semester End Date</Label>
+              <Label htmlFor="semesterEndDate" className="text-sm font-semibold">Semester End Date</Label>
               <Input
                 id="semesterEndDate"
                 type="date"
                 value={formData.semesterEndDate || ''}
                 onChange={(e) => handleInputChange('semesterEndDate', e.target.value)}
                 placeholder="When will the semester end?"
+                className="border-2 focus:border-red-400"
               />
             </div>
 
-            <div className="space-y-2 flex items-center">
-              <div className="flex items-center space-x-2">
+            <div className="space-y-3 flex items-center">
+              <div className="flex items-center space-x-3">
                 <Checkbox 
-                  id="isHospitalized" 
-                  checked={formData.isHospitalized}
-                  onCheckedChange={(checked) => handleInputChange('isHospitalized', !!checked)}
+                  id="isHostelResident" 
+                  checked={formData.isHostelResident}
+                  onCheckedChange={(checked) => handleInputChange('isHostelResident', !!checked)}
                 />
-                <Label htmlFor="isHospitalized" className="cursor-pointer">Currently Hospitalized</Label>
+                <Label htmlFor="isHostelResident" className="cursor-pointer font-semibold">Lives in Hostel</Label>
               </div>
             </div>
 
             {formData.lastDonationDate && (
-              <div className="space-y-2">
-                <Label htmlFor="nextDonationDate">Next Possible Donation Date</Label>
+              <div className="space-y-2 lg:col-span-2">
+                <Label htmlFor="nextDonationDate" className="text-sm font-semibold">Next Possible Donation Date</Label>
                 <Input
                   id="nextDonationDate"
                   type="date"
                   value={formData.nextDonationDate}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-gray-50 border-2"
                 />
                 <p className="text-xs text-gray-500">Automatically calculated (3 months after last donation)</p>
               </div>
             )}
           </div>
 
-          <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
-            <UserPlus className="h-4 w-4 mr-2" />
+          <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-lg py-3 rounded-lg font-semibold shadow-lg">
+            <UserPlus className="h-5 w-5 mr-2" />
             Add Donor
           </Button>
         </form>

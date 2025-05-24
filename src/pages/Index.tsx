@@ -2,11 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Search, Users, User, Calendar, Plus, Download, Heart } from 'lucide-react';
+import { Search, Users, User, Calendar, Plus, Download, Heart, MapPin, GraduationCap } from 'lucide-react';
 import AddDonorForm from '../components/AddDonorForm';
 import DonorSearch from '../components/DonorSearch';
 import DonorList from '../components/DonorList';
@@ -27,8 +26,9 @@ const Index = () => {
         // Update donor objects to include new fields if they don't have them
         const updatedDonors = parsedDonors.map((donor: Donor) => ({
           ...donor,
+          gender: donor.gender || 'Male',
           nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
-          isHospitalized: donor.isHospitalized || false,
+          isHostelResident: donor.isHostelResident !== undefined ? donor.isHostelResident : donor.isHospitalized || false,
           semesterEndDate: donor.semesterEndDate || ''
         }));
         setDonors(updatedDonors);
@@ -47,15 +47,12 @@ const Index = () => {
   // Handle tab changes
   const handleTabChange = (value: string) => {
     if (activeTab === 'search') {
-      // Save search tab state when leaving search
       setPersistedSearchTab('search');
     }
     
-    // When returning to search from another tab, maintain the search results
     if (value === 'search' && persistedSearchTab === 'search') {
       // Just switch to search tab, don't clear results
     } else if (value === 'search') {
-      // First time visiting search or explicitly cleared search
       setSearchResults([]);
     }
     
@@ -92,8 +89,10 @@ const Index = () => {
 
   // Dashboard statistics
   const totalDonors = donors.length;
-  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate) && !donor.isHospitalized).length;
-  const hospitalizedDonors = donors.filter(donor => donor.isHospitalized).length;
+  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate) && !donor.isHostelResident).length;
+  const hostelResidents = donors.filter(donor => donor.isHostelResident).length;
+  const maleDonors = donors.filter(donor => donor.gender === 'Male').length;
+  const femaleDonors = donors.filter(donor => donor.gender === 'Female').length;
 
   // Blood group distribution data
   const bloodGroupData = bloodGroups.map(group => ({
@@ -101,6 +100,12 @@ const Index = () => {
     count: donors.filter(donor => donor.bloodGroup === group).length,
     percentage: totalDonors > 0 ? ((donors.filter(donor => donor.bloodGroup === group).length / totalDonors) * 100).toFixed(1) : 0
   }));
+
+  // Gender distribution data
+  const genderData = [
+    { gender: 'Male', count: maleDonors, percentage: totalDonors > 0 ? ((maleDonors / totalDonors) * 100).toFixed(1) : 0 },
+    { gender: 'Female', count: femaleDonors, percentage: totalDonors > 0 ? ((femaleDonors / totalDonors) * 100).toFixed(1) : 0 }
+  ];
 
   // City distribution data
   const cityData = [...new Set(donors.map(donor => donor.city))]
@@ -112,12 +117,19 @@ const Index = () => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // University distribution data
+  // University distribution data with colors
+  const universityColors = [
+    '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', 
+    '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f59e0b', '#10b981', '#6366f1'
+  ];
+  
   const universityData = [...new Set(donors.map(donor => donor.university))]
     .filter(Boolean)
-    .map(university => ({
+    .map((university, index) => ({
       university,
-      count: donors.filter(donor => donor.university === university).length
+      shortName: university.split(' ').map(word => word[0]).join('').substring(0, 3),
+      count: donors.filter(donor => donor.university === university).length,
+      color: universityColors[index % universityColors.length]
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -127,38 +139,19 @@ const Index = () => {
     if (donors.length === 0) return;
     
     const headers = [
-      'Name', 
-      'Contact', 
-      'City', 
-      'University', 
-      'Department', 
-      'Semester', 
-      'Blood Group', 
-      'Last Donation Date', 
-      'Next Donation Date', 
-      'Available', 
-      'Hospitalized',
-      'Semester End Date'
+      'Name', 'Contact', 'City', 'University', 'Department', 'Semester', 'Gender',
+      'Blood Group', 'Last Donation Date', 'Next Donation Date', 'Available', 'Hostel Resident', 'Semester End Date'
     ];
     
     const csvData = donors.map(donor => [
-      donor.name,
-      donor.contact,
-      donor.city,
-      donor.university,
-      donor.department,
-      donor.semester,
-      donor.bloodGroup,
-      donor.lastDonationDate || 'Never',
-      donor.nextDonationDate || 'N/A',
+      donor.name, donor.contact, donor.city, donor.university, donor.department, donor.semester, donor.gender,
+      donor.bloodGroup, donor.lastDonationDate || 'Never', donor.nextDonationDate || 'N/A',
       isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
-      donor.isHospitalized ? 'Yes' : 'No',
-      donor.semesterEndDate || 'N/A'
+      donor.isHostelResident ? 'Yes' : 'No', donor.semesterEndDate || 'N/A'
     ]);
 
     const csvContent = [headers, ...csvData]
       .map(row => row.map(cell => {
-        // Handle strings that might contain commas by quoting them
         const cellStr = String(cell);
         return cellStr.includes(',') ? `"${cellStr}"` : cellStr;
       }).join(','))
@@ -214,7 +207,7 @@ const Index = () => {
 
           <TabsContent value="dashboard" className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Donors</CardTitle>
@@ -249,14 +242,25 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Hospitalized</CardTitle>
-                  <Calendar className="h-4 w-4" />
+                  <CardTitle className="text-sm font-medium">Hostel Residents</CardTitle>
+                  <MapPin className="h-4 w-4" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{hospitalizedDonors}</div>
-                  <p className="text-xs opacity-80">Currently unavailable</p>
+                  <div className="text-2xl font-bold">{hostelResidents}</div>
+                  <p className="text-xs opacity-80">Living in hostel</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Universities</CardTitle>
+                  <GraduationCap className="h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{universityData.length}</div>
+                  <p className="text-xs opacity-80">Registered</p>
                 </CardContent>
               </Card>
             </div>
@@ -293,6 +297,33 @@ const Index = () => {
 
               <Card>
                 <CardHeader>
+                  <CardTitle>Gender Distribution</CardTitle>
+                  <CardDescription>Male vs Female donors</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={genderData.filter(d => d.count > 0)}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({gender, percentage}) => `${gender} (${percentage}%)`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                      >
+                        <Cell fill="#3b82f6" />
+                        <Cell fill="#ec4899" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
                   <CardTitle>City Distribution</CardTitle>
                   <CardDescription>Number of donors by city</CardDescription>
                 </CardHeader>
@@ -312,36 +343,55 @@ const Index = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>University Distribution</CardTitle>
-                  <CardDescription>Number of donors by university</CardDescription>
+                  <CardDescription>Hover over segments to see university names</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={universityData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="university" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#ef4444" />
-                    </BarChart>
+                    <PieChart>
+                      <Pie
+                        data={universityData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({shortName}) => shortName}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                      >
+                        {universityData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value, name, props) => [
+                          `${value} donors`,
+                          props.payload.university
+                        ]}
+                      />
+                    </PieChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle>Blood Group Details</CardTitle>
-                  <CardDescription>Count and percentage breakdown</CardDescription>
+                  <CardDescription>Count and percentage breakdown with compatibility info</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {bloodGroupData.filter(d => d.count > 0).map((group, index) => (
-                      <div key={group.group} className="flex items-center justify-between">
+                      <div key={group.group} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <div 
                             className="w-4 h-4 rounded"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
-                          <span className="font-medium">{group.group}</span>
+                          <div>
+                            <span className="font-bold text-lg">{group.group}</span>
+                            {group.group === 'O-' && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Universal Donor</span>}
+                            {group.group === 'AB+' && <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Universal Recipient</span>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-gray-600">{group.count} donors</span>
