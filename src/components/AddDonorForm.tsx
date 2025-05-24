@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,14 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, universities } from '../types/donor';
+import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate } from '../types/donor';
 import { UserPlus } from 'lucide-react';
 
 interface AddDonorFormProps {
   onAddDonor: (donor: Omit<Donor, 'id'>) => void;
+  universities: string[];
 }
 
-const AddDonorForm = ({ onAddDonor }: AddDonorFormProps) => {
+const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
   const { toast } = useToast();
   const initialFormState = {
     name: '',
