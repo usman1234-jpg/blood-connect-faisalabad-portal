@@ -8,22 +8,22 @@ import DonorList from '../components/DonorList';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import DashboardStats from '../components/dashboard/DashboardStats';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
-import { Donor, calculateNextDonationDate } from '../types/donor';
-import { isDonorAvailable, exportDonorsToCSV } from '../utils/donorUtils';
+import { Donor, calculateNextDonationDate, universities as defaultUniversities } from '../types/donor';
+import { isDonorAvailable, exportDonorsToCSV, getUniversitiesFromDonors } from '../utils/donorUtils';
 
 const Index = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
+  const [universities, setUniversities] = useState<string[]>(defaultUniversities);
 
-  // Load donors from localStorage on component mount
+  // Load donors and universities from localStorage on component mount
   useEffect(() => {
     const savedDonors = localStorage.getItem('bloodDonors');
     if (savedDonors) {
       try {
         const parsedDonors = JSON.parse(savedDonors);
-        // Update donor objects to include new fields if they don't have them
         const updatedDonors = parsedDonors.map((donor: Donor) => ({
           ...donor,
           gender: donor.gender || 'Male',
@@ -37,12 +37,27 @@ const Index = () => {
         setDonors([]);
       }
     }
+
+    const savedUniversities = localStorage.getItem('universities');
+    if (savedUniversities) {
+      try {
+        const parsedUniversities = JSON.parse(savedUniversities);
+        setUniversities([...new Set([...defaultUniversities, ...parsedUniversities])]);
+      } catch (error) {
+        console.error("Error parsing universities from localStorage:", error);
+      }
+    }
   }, []);
 
   // Save donors to localStorage whenever donors change
   useEffect(() => {
     localStorage.setItem('bloodDonors', JSON.stringify(donors));
   }, [donors]);
+
+  // Save universities to localStorage whenever universities change
+  useEffect(() => {
+    localStorage.setItem('universities', JSON.stringify(universities));
+  }, [universities]);
 
   // Handle tab changes
   const handleTabChange = (value: string) => {
@@ -82,10 +97,20 @@ const Index = () => {
     exportDonorsToCSV(donors, isDonorAvailable);
   };
 
+  const handleAddUniversity = (universityName: string) => {
+    if (!universities.includes(universityName)) {
+      setUniversities([...universities, universityName]);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto p-6">
-        <DashboardHeader onExportCSV={handleExportCSV} />
+        <DashboardHeader 
+          onExportCSV={handleExportCSV} 
+          universities={universities}
+          onAddUniversity={handleAddUniversity}
+        />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
@@ -113,7 +138,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="add-donor">
-            <AddDonorForm onAddDonor={addDonor} />
+            <AddDonorForm onAddDonor={addDonor} universities={universities} />
           </TabsContent>
 
           <TabsContent value="search">

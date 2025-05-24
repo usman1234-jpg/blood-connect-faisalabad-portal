@@ -18,17 +18,23 @@ export const exportDonorsToCSV = (donors: Donor[], isDonorAvailable: (lastDonati
   ];
   
   const csvData = donors.map(donor => [
-    donor.name, donor.contact, donor.city, donor.university, donor.department, donor.semester, donor.gender,
-    donor.bloodGroup, donor.lastDonationDate || 'Never', donor.nextDonationDate || 'N/A',
+    donor.name, 
+    `"${donor.contact}"`, // Quote the phone number to preserve formatting
+    donor.city, 
+    donor.university, 
+    donor.department, 
+    donor.semester, 
+    donor.gender,
+    donor.bloodGroup, 
+    donor.lastDonationDate || 'Never', 
+    donor.nextDonationDate || 'N/A',
     isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
-    donor.isHostelResident ? 'Yes' : 'No', donor.semesterEndDate || 'N/A'
+    donor.isHostelResident ? 'Yes' : 'No', 
+    donor.semesterEndDate || 'N/A'
   ]);
 
   const csvContent = [headers, ...csvData]
-    .map(row => row.map(cell => {
-      const cellStr = String(cell);
-      return cellStr.includes(',') ? `"${cellStr}"` : cellStr;
-    }).join(','))
+    .map(row => row.join(','))
     .join('\n');
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -38,4 +44,8 @@ export const exportDonorsToCSV = (donors: Donor[], isDonorAvailable: (lastDonati
   a.download = `blood_donors_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
   window.URL.revokeObjectURL(url);
+};
+
+export const getUniversitiesFromDonors = (donors: Donor[]): string[] => {
+  return [...new Set(donors.map(donor => donor.university))].filter(Boolean).sort();
 };

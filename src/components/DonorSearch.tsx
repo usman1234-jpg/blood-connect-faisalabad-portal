@@ -21,6 +21,8 @@ interface SearchFilters {
   university: string;
   phone: string;
   availability: 'all' | 'available' | 'unavailable';
+  gender: 'all' | 'Male' | 'Female';
+  hostelResident: 'all' | 'yes' | 'no';
 }
 
 const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchProps) => {
@@ -29,7 +31,9 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     city: '',
     university: '',
     phone: '',
-    availability: 'all'
+    availability: 'all',
+    gender: 'all',
+    hostelResident: 'all'
   });
 
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
@@ -76,6 +80,16 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       filteredDonors = filteredDonors.filter(donor => isDonorAvailable(donor.lastDonationDate));
     } else if (filters.availability === 'unavailable') {
       filteredDonors = filteredDonors.filter(donor => !isDonorAvailable(donor.lastDonationDate));
+    }
+
+    if (filters.gender !== 'all') {
+      filteredDonors = filteredDonors.filter(donor => donor.gender === filters.gender);
+    }
+
+    if (filters.hostelResident === 'yes') {
+      filteredDonors = filteredDonors.filter(donor => donor.isHostelResident);
+    } else if (filters.hostelResident === 'no') {
+      filteredDonors = filteredDonors.filter(donor => !donor.isHostelResident);
     }
 
     // Sort by availability and last donation date
@@ -129,7 +143,9 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       city: '',
       university: '',
       phone: '',
-      availability: 'all'
+      availability: 'all',
+      gender: 'all',
+      hostelResident: 'all'
     });
     setSearchResults([]);
     setAlternativeResults([]);
@@ -165,7 +181,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     
     const csvData = donors.map(donor => [
       donor.name,
-      donor.contact,
+      `"${donor.contact}"`, // Quote the phone number to preserve formatting
       donor.city,
       donor.university,
       donor.department,
@@ -180,11 +196,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     ]);
 
     const csvContent = [headers, ...csvData]
-      .map(row => row.map(cell => {
-        // Handle strings that might contain commas by quoting them
-        const cellStr = String(cell);
-        return cellStr.includes(',') ? `"${cellStr}"` : cellStr;
-      }).join(','))
+      .map(row => row.join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -290,11 +302,11 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
             Search Donors
           </CardTitle>
           <CardDescription>
-            Find donors by blood group, location, university, or contact information
+            Find donors by blood group, location, university, gender, or contact information
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor="bloodGroup">Blood Group</Label>
               <Select value={filters.bloodGroup} onValueChange={(value) => setFilters(prev => ({ ...prev, bloodGroup: value as BloodGroup }))}>
@@ -333,6 +345,34 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
                   {universities.map((uni) => (
                     <SelectItem key={uni} value={uni}>{uni}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select value={filters.gender} onValueChange={(value) => setFilters(prev => ({ ...prev, gender: value as 'all' | 'Male' | 'Female' }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All genders" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Genders</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="hostelResident">Hostel Resident</Label>
+              <Select value={filters.hostelResident} onValueChange={(value) => setFilters(prev => ({ ...prev, hostelResident: value as 'all' | 'yes' | 'no' }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All donors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Donors</SelectItem>
+                  <SelectItem value="yes">Hostel Residents</SelectItem>
+                  <SelectItem value="no">Non-Hostel Residents</SelectItem>
                 </SelectContent>
               </Select>
             </div>

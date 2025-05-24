@@ -10,7 +10,7 @@ interface DashboardStatsProps {
 
 const DashboardStats = ({ donors, isDonorAvailable }: DashboardStatsProps) => {
   const totalDonors = donors.length;
-  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate) && !donor.isHostelResident).length;
+  const availableDonors = donors.filter(donor => isDonorAvailable(donor.lastDonationDate)).length;
   const hostelResidents = donors.filter(donor => donor.isHostelResident).length;
   const bloodGroupCount = [...new Set(donors.map(donor => donor.bloodGroup))].length;
   const universityCount = [...new Set(donors.map(donor => donor.university))].filter(Boolean).length;
