@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, Home } from 'lucide-react';
-import { Donor, BloodGroup, bloodGroups, bloodCompatibility, canDonateTo, hasDonorGraduated } from '../types/donor';
+import { Donor, BloodGroup, bloodGroups, bloodCompatibility, hasDonorGraduated } from '../types/donor';
 
 interface DonorSearchProps {
   donors: Donor[];
@@ -159,7 +158,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       'Last Donation Date', 
       'Next Donation Date', 
       'Available', 
-      'Hospitalized',
+      'Hostel Resident',
       'Semester End Date',
       'Graduated'
     ];
@@ -175,7 +174,7 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       donor.lastDonationDate || 'Never',
       donor.nextDonationDate || 'N/A',
       isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
-      donor.isHospitalized ? 'Yes' : 'No',
+      donor.isHostelResident ? 'Yes' : 'No',
       donor.semesterEndDate || 'N/A',
       hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
     ]);
