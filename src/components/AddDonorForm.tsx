@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -141,7 +140,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
     // Enter key navigation
     if (e.key === 'Enter' && e.target instanceof HTMLElement) {
       // Don't prevent default for calendar inputs to allow date picker functionality
-      if (e.target.type === 'date') {
+      if (e.target instanceof HTMLInputElement && e.target.type === 'date') {
         return;
       }
 
