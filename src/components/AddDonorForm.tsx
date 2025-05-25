@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -230,6 +231,22 @@ const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntrySta
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="bloodGroup" className="text-sm font-semibold">Blood Group *</Label>
+                <Select value={formData.bloodGroup} onValueChange={(value) => handleInputChange('bloodGroup', value as BloodGroup)}>
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={3}>
+                    <SelectValue placeholder="Select blood group" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    {bloodGroups.map((group) => (
+                      <SelectItem key={group} value={group}>
+                        <span className="font-semibold text-red-600">{group}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="city" className="text-sm font-semibold">City</Label>
                 <Input
                   id="city"
@@ -238,14 +255,14 @@ const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntrySta
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   placeholder="Enter city"
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
-                  tabIndex={3}
+                  tabIndex={4}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="university" className="text-sm font-semibold">University</Label>
                 <Select value={formData.university} onValueChange={(value) => handleInputChange('university', value)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={4}>
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={5}>
                     <SelectValue placeholder="Select university" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -265,14 +282,14 @@ const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntrySta
                   onChange={(e) => handleInputChange('department', e.target.value)}
                   placeholder="e.g., Computer Science"
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
-                  tabIndex={5}
+                  tabIndex={6}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="semester" className="text-sm font-semibold">Semester</Label>
                 <Select value={formData.semester} onValueChange={(value) => handleInputChange('semester', value)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={6}>
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={7}>
                     <SelectValue placeholder="Select semester" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -291,30 +308,14 @@ const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntrySta
                   className="flex flex-col sm:flex-row gap-4 sm:gap-6"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Male" id="male" tabIndex={7} />
+                    <RadioGroupItem value="Male" id="male" tabIndex={8} />
                     <Label htmlFor="male" className="cursor-pointer">Male</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Female" id="female" tabIndex={8} />
+                    <RadioGroupItem value="Female" id="female" tabIndex={9} />
                     <Label htmlFor="female" className="cursor-pointer">Female</Label>
                   </div>
                 </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bloodGroup" className="text-sm font-semibold">Blood Group *</Label>
-                <Select value={formData.bloodGroup} onValueChange={(value) => handleInputChange('bloodGroup', value as BloodGroup)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={9}>
-                    <SelectValue placeholder="Select blood group" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-50">
-                    {bloodGroups.map((group) => (
-                      <SelectItem key={group} value={group}>
-                        <span className="font-semibold text-red-600">{group}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2">

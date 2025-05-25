@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Users, X } from 'lucide-react';
 
 interface MassEntryModeProps {
@@ -24,6 +25,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled, pres
     department: '',
     semester: '',
     city: 'Faisalabad',
+    gender: 'Male',
     isHostelResident: false,
     semesterEndDate: ''
   };
@@ -116,6 +118,24 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled, pres
                 onChange={(e) => handlePresetChange('city', e.target.value)}
                 placeholder="Enter city"
               />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Gender</Label>
+              <RadioGroup 
+                value={currentPreset.gender} 
+                onValueChange={(value) => handlePresetChange('gender', value)}
+                className="flex flex-row gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Male" id="preset-male" />
+                  <Label htmlFor="preset-male" className="cursor-pointer">Male</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="Female" id="preset-female" />
+                  <Label htmlFor="preset-female" className="cursor-pointer">Female</Label>
+                </div>
+              </RadioGroup>
             </div>
 
             <div className="space-y-2">
