@@ -13,6 +13,7 @@ export interface Donor {
   nextDonationDate?: string; // When they can donate next
   isHostelResident: boolean;
   semesterEndDate?: string; // To track graduation/completion
+  dateAdded: string; // New field for tracking when donor was added
 }
 
 export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';

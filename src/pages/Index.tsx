@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Search, Users, Plus } from 'lucide-react';
@@ -10,6 +9,7 @@ import DashboardStats from '../components/dashboard/DashboardStats';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
 import { Donor, calculateNextDonationDate, universities as defaultUniversities } from '../types/donor';
 import { isDonorAvailable, exportDonorsToCSV, getUniversitiesFromDonors } from '../utils/donorUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const Index = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
@@ -18,6 +18,7 @@ const Index = () => {
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
   const [universities, setUniversities] = useState<string[]>(defaultUniversities);
   const [massEntryState, setMassEntryState] = useState({ enabled: false, preset: {} });
+  const { isAdmin } = useAuth();
 
   // Load donors and universities from localStorage on component mount
   useEffect(() => {
@@ -30,7 +31,8 @@ const Index = () => {
           gender: donor.gender || 'Male',
           nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
           isHostelResident: donor.isHostelResident !== undefined ? donor.isHostelResident : false,
-          semesterEndDate: donor.semesterEndDate || ''
+          semesterEndDate: donor.semesterEndDate || '',
+          dateAdded: donor.dateAdded || new Date().toISOString().split('T')[0] // Add current date for existing donors
         }));
         setDonors(updatedDonors);
       } catch (error) {

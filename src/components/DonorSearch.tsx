@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, Home } from 'lucide-react';
+import { Search, Phone, Users, MapPin, Download, Clock, Heart, School, Home, Calendar } from 'lucide-react';
 import { Donor, BloodGroup, bloodGroups, bloodCompatibility, hasDonorGraduated } from '../types/donor';
 
 interface DonorSearchProps {
@@ -23,6 +23,8 @@ interface SearchFilters {
   availability: 'all' | 'available' | 'unavailable';
   gender: 'all' | 'Male' | 'Female';
   hostelResident: 'all' | 'yes' | 'no';
+  dateAddedFrom: string;
+  dateAddedTo: string;
 }
 
 const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchProps) => {
@@ -33,7 +35,9 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
     phone: '',
     availability: 'all',
     gender: 'all',
-    hostelResident: 'all'
+    hostelResident: 'all',
+    dateAddedFrom: '',
+    dateAddedTo: ''
   });
 
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
@@ -92,6 +96,19 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       filteredDonors = filteredDonors.filter(donor => !donor.isHostelResident);
     }
 
+    // Filter by date added
+    if (filters.dateAddedFrom) {
+      filteredDonors = filteredDonors.filter(donor => 
+        donor.dateAdded >= filters.dateAddedFrom
+      );
+    }
+
+    if (filters.dateAddedTo) {
+      filteredDonors = filteredDonors.filter(donor => 
+        donor.dateAdded <= filters.dateAddedTo
+      );
+    }
+
     // Sort by availability and last donation date
     filteredDonors.sort((a, b) => {
       const aAvailable = isDonorAvailable(a.lastDonationDate);
@@ -145,7 +162,9 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       phone: '',
       availability: 'all',
       gender: 'all',
-      hostelResident: 'all'
+      hostelResident: 'all',
+      dateAddedFrom: '',
+      dateAddedTo: ''
     });
     setSearchResults([]);
     setAlternativeResults([]);
@@ -176,7 +195,8 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       'Available', 
       'Hostel Resident',
       'Semester End Date',
-      'Graduated'
+      'Graduated',
+      'Date Added'
     ];
     
     const csvData = donors.map(donor => [
@@ -192,7 +212,8 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
       isDonorAvailable(donor.lastDonationDate) ? 'Yes' : 'No',
       donor.isHostelResident ? 'Yes' : 'No',
       donor.semesterEndDate || 'N/A',
-      hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No'
+      hasDonorGraduated(donor.semesterEndDate) ? 'Yes' : 'No',
+      donor.dateAdded || 'N/A'
     ]);
 
     const csvContent = [headers, ...csvData]
@@ -262,6 +283,12 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
               <MapPin className="h-4 w-4 text-gray-500" />
               <span>{donor.city}</span>
             </div>
+            {donor.dateAdded && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <span>Added: {new Date(donor.dateAdded).toLocaleDateString()}</span>
+              </div>
+            )}
             {donor.lastDonationDate && (
               <div className="text-gray-600">
                 <div className="flex items-center gap-2">
@@ -302,11 +329,11 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
             Search Donors
           </CardTitle>
           <CardDescription>
-            Find donors by blood group, location, university, gender, or contact information
+            Find donors by blood group, location, university, gender, date added, or contact information
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor="bloodGroup">Blood Group</Label>
               <Select value={filters.bloodGroup} onValueChange={(value) => setFilters(prev => ({ ...prev, bloodGroup: value as BloodGroup }))}>
@@ -400,6 +427,26 @@ const DonorSearch = ({ donors, onSearchResults, isDonorAvailable }: DonorSearchP
                   <SelectItem value="unavailable">Unavailable Only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateAddedFrom">Date Added From</Label>
+              <Input
+                id="dateAddedFrom"
+                type="date"
+                value={filters.dateAddedFrom}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateAddedFrom: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateAddedTo">Date Added To</Label>
+              <Input
+                id="dateAddedTo"
+                type="date"
+                value={filters.dateAddedTo}
+                onChange={(e) => setFilters(prev => ({ ...prev, dateAddedTo: e.target.value }))}
+              />
             </div>
           </div>
 

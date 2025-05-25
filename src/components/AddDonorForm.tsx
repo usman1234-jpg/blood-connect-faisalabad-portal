@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate } from '../types/donor';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Lock } from 'lucide-react';
 import MassEntryMode from './MassEntryMode';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AddDonorFormProps {
   onAddDonor: (donor: Omit<Donor, 'id'>) => void;
@@ -21,8 +21,24 @@ interface AddDonorFormProps {
 
 const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntryStateChange }: AddDonorFormProps) => {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const formRef = useRef<HTMLFormElement>(null);
   
+  // If user is not admin, show access denied message
+  if (!isAdmin()) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Card className="shadow-lg">
+          <CardContent className="p-8 text-center">
+            <Lock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">Access Restricted</h3>
+            <p className="text-gray-500">Only administrators can add new donors to the system.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const initialFormState = {
     name: '',
     contact: '',
@@ -80,7 +96,8 @@ const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntrySta
 
     onAddDonor({
       ...formData,
-      nextDonationDate
+      nextDonationDate,
+      dateAdded: new Date().toISOString().split('T')[0] // Add current date
     });
     
     toast({
