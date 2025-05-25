@@ -105,7 +105,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-7xl">
         <DashboardHeader 
           onExportCSV={handleExportCSV} 
           universities={universities}
@@ -113,26 +113,29 @@ const Index = () => {
         />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart className="h-4 w-4" />
-              Dashboard
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6 h-auto">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+              <BarChart className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="add-donor" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Donor
+            <TabsTrigger value="add-donor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Add Donor</span>
+              <span className="sm:hidden">Add</span>
             </TabsTrigger>
-            <TabsTrigger value="search" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
+            <TabsTrigger value="search" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+              <Search className="h-3 w-3 sm:h-4 sm:w-4" />
               Search
             </TabsTrigger>
-            <TabsTrigger value="donors" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              All Donors
+            <TabsTrigger value="donors" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">All Donors</span>
+              <span className="sm:hidden">All</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6">
+          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
             <DashboardStats donors={donors} isDonorAvailable={isDonorAvailable} />
             <DashboardCharts donors={donors} />
           </TabsContent>

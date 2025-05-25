@@ -18,36 +18,40 @@ const DashboardHeader = ({ onExportCSV, universities, onAddUniversity }: Dashboa
   };
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-      <div>
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">
-          Blood Connect Faisalabad
-        </h1>
-        <p className="text-gray-600">Donor Management Portal</p>
-      </div>
-      
-      <div className="flex flex-wrap gap-3">
-        <UniversityManager 
-          universities={universities}
-          onAddUniversity={onAddUniversity}
-        />
+    <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-1 sm:mb-2">
+            Blood Connect Faisalabad
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">Donor Management Portal</p>
+        </div>
         
-        <Button 
-          onClick={onExportCSV}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
-        
-        <Button 
-          onClick={handleLogout}
-          variant="outline"
-          className="border-red-300 text-red-600 hover:bg-red-50"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+          <UniversityManager 
+            universities={universities}
+            onAddUniversity={onAddUniversity}
+          />
+          
+          <Button 
+            onClick={onExportCSV}
+            className="bg-green-600 hover:bg-green-700 text-sm sm:text-base py-2 sm:py-2.5"
+            size="sm"
+          >
+            <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            Export CSV
+          </Button>
+          
+          <Button 
+            onClick={handleLogout}
+            variant="outline"
+            className="border-red-300 text-red-600 hover:bg-red-50 text-sm sm:text-base py-2 sm:py-2.5"
+            size="sm"
+          >
+            <LogOut className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            Logout
+          </Button>
+        </div>
       </div>
     </div>
   );
