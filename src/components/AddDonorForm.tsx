@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
   
   const [formData, setFormData] = useState(initialFormState);
 
-  const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+  const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
   // Apply mass entry preset when it changes
   useEffect(() => {
@@ -109,22 +110,60 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
     });
   };
 
+  const getFocusableElements = () => {
+    if (!formRef.current) return [];
+    const selector = 'input:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"]), [role="radio"], [role="checkbox"]';
+    return Array.from(formRef.current.querySelectorAll(selector)) as HTMLElement[];
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+    // Shift + Enter to submit form
+    if (e.shiftKey && e.key === 'Enter') {
       e.preventDefault();
-      const form = e.target.form;
-      if (form) {
-        const formElements = Array.from(form.elements) as HTMLElement[];
-        const currentIndex = formElements.indexOf(e.target);
-        const nextElement = formElements[currentIndex + 1];
-        
-        if (nextElement && (nextElement as any).focus) {
-          (nextElement as any).focus();
-        } else {
-          // If we're at the last element, submit the form
-          form.requestSubmit();
+      if (formRef.current) {
+        formRef.current.requestSubmit();
+      }
+      return;
+    }
+
+    // Tab + Q for backward navigation
+    if (e.key === 'q' && e.target instanceof HTMLElement) {
+      const focusableElements = getFocusableElements();
+      const currentIndex = focusableElements.indexOf(e.target);
+      
+      if (currentIndex > 0) {
+        e.preventDefault();
+        focusableElements[currentIndex - 1].focus();
+      }
+      return;
+    }
+
+    // Enter key navigation
+    if (e.key === 'Enter' && e.target instanceof HTMLElement) {
+      // Don't prevent default for calendar inputs to allow date picker functionality
+      if (e.target.type === 'date') {
+        return;
+      }
+
+      e.preventDefault();
+      const focusableElements = getFocusableElements();
+      const currentIndex = focusableElements.indexOf(e.target);
+      
+      if (currentIndex < focusableElements.length - 1) {
+        focusableElements[currentIndex + 1].focus();
+      } else {
+        // If we're at the last element, submit the form
+        if (formRef.current) {
+          formRef.current.requestSubmit();
         }
       }
+    }
+
+    // Space key for checkboxes and radio buttons
+    if (e.key === ' ' && (e.target as HTMLElement).getAttribute('role') === 'checkbox') {
+      e.preventDefault();
+      const checkbox = e.target as HTMLElement;
+      checkbox.click();
     }
   };
 
@@ -161,6 +200,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
                   required
                   autoFocus
+                  tabIndex={1}
                 />
               </div>
 
@@ -174,6 +214,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   placeholder="03xxxxxxxxx"
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
                   required
+                  tabIndex={2}
                 />
               </div>
 
@@ -186,13 +227,14 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   placeholder="Enter city"
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
+                  tabIndex={3}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="university" className="text-sm font-semibold">University</Label>
                 <Select value={formData.university} onValueChange={(value) => handleInputChange('university', value)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11">
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={4}>
                     <SelectValue placeholder="Select university" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -212,13 +254,14 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   onChange={(e) => handleInputChange('department', e.target.value)}
                   placeholder="e.g., Computer Science"
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
+                  tabIndex={5}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="semester" className="text-sm font-semibold">Semester</Label>
                 <Select value={formData.semester} onValueChange={(value) => handleInputChange('semester', value)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11">
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={6}>
                     <SelectValue placeholder="Select semester" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -237,11 +280,11 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   className="flex flex-col sm:flex-row gap-4 sm:gap-6"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Male" id="male" />
+                    <RadioGroupItem value="Male" id="male" tabIndex={7} />
                     <Label htmlFor="male" className="cursor-pointer">Male</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="Female" id="female" />
+                    <RadioGroupItem value="Female" id="female" tabIndex={8} />
                     <Label htmlFor="female" className="cursor-pointer">Female</Label>
                   </div>
                 </RadioGroup>
@@ -250,7 +293,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
               <div className="space-y-2">
                 <Label htmlFor="bloodGroup" className="text-sm font-semibold">Blood Group *</Label>
                 <Select value={formData.bloodGroup} onValueChange={(value) => handleInputChange('bloodGroup', value as BloodGroup)}>
-                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11">
+                  <SelectTrigger className="border-2 focus:border-red-400 h-10 sm:h-11" tabIndex={9}>
                     <SelectValue placeholder="Select blood group" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -272,6 +315,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   value={formData.lastDonationDate}
                   onChange={(e) => handleInputChange('lastDonationDate', e.target.value)}
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
+                  tabIndex={10}
                 />
               </div>
 
@@ -284,6 +328,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                   value={formData.semesterEndDate || ''}
                   onChange={(e) => handleInputChange('semesterEndDate', e.target.value)}
                   className="border-2 focus:border-red-400 h-10 sm:h-11"
+                  tabIndex={11}
                 />
               </div>
 
@@ -293,6 +338,9 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
                     id="isHostelResident" 
                     checked={formData.isHostelResident}
                     onCheckedChange={(checked) => handleInputChange('isHostelResident', !!checked)}
+                    tabIndex={12}
+                    role="checkbox"
+                    aria-checked={formData.isHostelResident}
                   />
                   <Label htmlFor="isHostelResident" className="cursor-pointer font-semibold text-sm">Lives in Hostel</Label>
                 </div>
@@ -316,13 +364,14 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
             <Button 
               type="submit" 
               className="w-full bg-red-600 hover:bg-red-700 text-base sm:text-lg py-3 sm:py-4 rounded-lg font-semibold shadow-lg"
+              tabIndex={13}
             >
               <UserPlus className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Add Donor
             </Button>
             
             <div className="text-center text-sm text-gray-500 mt-4">
-              <p>Press Tab to navigate between fields • Press Enter to move to next field or submit</p>
+              <p>Navigation: Tab (next) • Q (previous) • Enter (next/submit) • Shift+Enter (submit) • Space (select)</p>
             </div>
           </form>
         </CardContent>
