@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,33 +13,28 @@ interface MassEntryModeProps {
   onToggle: (enabled: boolean) => void;
   onPresetChange: (preset: any) => void;
   isEnabled: boolean;
+  preset: any;
 }
 
-const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: MassEntryModeProps) => {
-  const [preset, setPreset] = useState({
+const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled, preset }: MassEntryModeProps) => {
+  const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+
+  const currentPreset = preset || {
     university: '',
     department: '',
     semester: '',
     city: 'Faisalabad',
     isHostelResident: false,
     semesterEndDate: ''
-  });
-
-  const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+  };
 
   const handlePresetChange = (field: string, value: any) => {
-    const newPreset = { ...preset, [field]: value };
-    setPreset(newPreset);
+    const newPreset = { ...currentPreset, [field]: value };
     onPresetChange(newPreset);
   };
 
   const handleToggle = (enabled: boolean) => {
     onToggle(enabled);
-    if (enabled) {
-      onPresetChange(preset);
-    } else {
-      onPresetChange({});
-    }
   };
 
   return (
@@ -72,7 +67,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
             <div className="space-y-2">
               <Label htmlFor="preset-university" className="text-sm font-medium">University</Label>
               <Select 
-                value={preset.university} 
+                value={currentPreset.university} 
                 onValueChange={(value) => handlePresetChange('university', value)}
               >
                 <SelectTrigger>
@@ -90,7 +85,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
               <Label htmlFor="preset-department" className="text-sm font-medium">Department</Label>
               <Input
                 id="preset-department"
-                value={preset.department}
+                value={currentPreset.department}
                 onChange={(e) => handlePresetChange('department', e.target.value)}
                 placeholder="e.g., Computer Science"
               />
@@ -99,7 +94,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
             <div className="space-y-2">
               <Label htmlFor="preset-semester" className="text-sm font-medium">Semester</Label>
               <Select 
-                value={preset.semester} 
+                value={currentPreset.semester} 
                 onValueChange={(value) => handlePresetChange('semester', value)}
               >
                 <SelectTrigger>
@@ -117,7 +112,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
               <Label htmlFor="preset-city" className="text-sm font-medium">City</Label>
               <Input
                 id="preset-city"
-                value={preset.city}
+                value={currentPreset.city}
                 onChange={(e) => handlePresetChange('city', e.target.value)}
                 placeholder="Enter city"
               />
@@ -128,7 +123,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
               <Input
                 id="preset-semester-end"
                 type="date"
-                value={preset.semesterEndDate}
+                value={currentPreset.semesterEndDate}
                 onChange={(e) => handlePresetChange('semesterEndDate', e.target.value)}
               />
             </div>
@@ -136,7 +131,7 @@ const MassEntryMode = ({ universities, onToggle, onPresetChange, isEnabled }: Ma
             <div className="flex items-center space-x-2">
               <Switch
                 id="preset-hostel"
-                checked={preset.isHostelResident}
+                checked={currentPreset.isHostelResident}
                 onCheckedChange={(checked) => handlePresetChange('isHostelResident', checked)}
               />
               <Label htmlFor="preset-hostel" className="text-sm font-medium">Lives in Hostel</Label>

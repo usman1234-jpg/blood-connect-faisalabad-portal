@@ -14,13 +14,13 @@ import MassEntryMode from './MassEntryMode';
 interface AddDonorFormProps {
   onAddDonor: (donor: Omit<Donor, 'id'>) => void;
   universities: string[];
+  massEntryState: { enabled: boolean; preset: any };
+  onMassEntryStateChange: (enabled: boolean, preset: any) => void;
 }
 
-const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
+const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntryStateChange }: AddDonorFormProps) => {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [massEntryEnabled, setMassEntryEnabled] = useState(false);
-  const [massEntryPreset, setMassEntryPreset] = useState<any>({});
   
   const initialFormState = {
     name: '',
@@ -37,19 +37,30 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
     semesterEndDate: ''
   };
   
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState(() => ({
+    ...initialFormState,
+    ...(massEntryState.enabled ? massEntryState.preset : {})
+  }));
 
   const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
 
-  // Apply mass entry preset when it changes
+  // Apply mass entry preset when it changes or when component mounts
   useEffect(() => {
-    if (massEntryEnabled && massEntryPreset) {
+    if (massEntryState.enabled && massEntryState.preset) {
       setFormData(prev => ({
         ...prev,
-        ...massEntryPreset
+        ...massEntryState.preset
       }));
     }
-  }, [massEntryPreset, massEntryEnabled]);
+  }, [massEntryState]);
+
+  const handleMassEntryToggle = (enabled: boolean) => {
+    onMassEntryStateChange(enabled, enabled ? massEntryState.preset : {});
+  };
+
+  const handleMassEntryPresetChange = (preset: any) => {
+    onMassEntryStateChange(massEntryState.enabled, preset);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,10 +89,10 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
     });
 
     // Reset form but keep mass entry preset data
-    if (massEntryEnabled) {
+    if (massEntryState.enabled) {
       setFormData({
         ...initialFormState,
-        ...massEntryPreset
+        ...massEntryState.preset
       });
     } else {
       setFormData(initialFormState);
@@ -125,8 +136,8 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
       return;
     }
 
-    // Tab + Q for backward navigation
-    if (e.key === 'q' && e.target instanceof HTMLElement) {
+    // Ctrl + Q for backward navigation
+    if (e.ctrlKey && e.key === 'q' && e.target instanceof HTMLElement) {
       const focusableElements = getFocusableElements();
       const currentIndex = focusableElements.indexOf(e.target);
       
@@ -170,9 +181,10 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <MassEntryMode
         universities={universities}
-        onToggle={setMassEntryEnabled}
-        onPresetChange={setMassEntryPreset}
-        isEnabled={massEntryEnabled}
+        onToggle={handleMassEntryToggle}
+        onPresetChange={handleMassEntryPresetChange}
+        isEnabled={massEntryState.enabled}
+        preset={massEntryState.preset}
       />
       
       <Card className="shadow-lg">
@@ -370,7 +382,7 @@ const AddDonorForm = ({ onAddDonor, universities }: AddDonorFormProps) => {
             </Button>
             
             <div className="text-center text-sm text-gray-500 mt-4">
-              <p>Navigation: Tab (next) • Q (previous) • Enter (next/submit) • Shift+Enter (submit) • Space (select)</p>
+              <p>Navigation: Tab (next) • Ctrl+Q (previous) • Enter (next/submit) • Shift+Enter (submit) • Space (select)</p>
             </div>
           </form>
         </CardContent>

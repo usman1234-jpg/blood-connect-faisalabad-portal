@@ -17,6 +17,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
   const [universities, setUniversities] = useState<string[]>(defaultUniversities);
+  const [massEntryState, setMassEntryState] = useState({ enabled: false, preset: {} });
 
   // Load donors and universities from localStorage on component mount
   useEffect(() => {
@@ -47,6 +48,17 @@ const Index = () => {
         console.error("Error parsing universities from localStorage:", error);
       }
     }
+
+    // Load mass entry state from localStorage
+    const savedMassEntryState = localStorage.getItem('massEntryState');
+    if (savedMassEntryState) {
+      try {
+        const parsedState = JSON.parse(savedMassEntryState);
+        setMassEntryState(parsedState);
+      } catch (error) {
+        console.error("Error parsing mass entry state from localStorage:", error);
+      }
+    }
   }, []);
 
   // Save donors to localStorage whenever donors change
@@ -58,6 +70,11 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem('universities', JSON.stringify(universities));
   }, [universities]);
+
+  // Save mass entry state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('massEntryState', JSON.stringify(massEntryState));
+  }, [massEntryState]);
 
   // Handle tab changes
   const handleTabChange = (value: string) => {
@@ -103,6 +120,10 @@ const Index = () => {
     }
   };
 
+  const handleMassEntryStateChange = (enabled: boolean, preset: any) => {
+    setMassEntryState({ enabled, preset });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-7xl">
@@ -141,7 +162,12 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="add-donor">
-            <AddDonorForm onAddDonor={addDonor} universities={universities} />
+            <AddDonorForm 
+              onAddDonor={addDonor} 
+              universities={universities}
+              massEntryState={massEntryState}
+              onMassEntryStateChange={handleMassEntryStateChange}
+            />
           </TabsContent>
 
           <TabsContent value="search">
