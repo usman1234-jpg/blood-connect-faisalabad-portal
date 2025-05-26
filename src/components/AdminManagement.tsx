@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,15 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Users, Settings, Trash2, Edit, Key } from 'lucide-react';
+import { UserPlus, Users, Settings, Trash2, Edit } from 'lucide-react';
 import { universities } from '../types/donor';
 
 const AdminManagement = () => {
   const { toast } = useToast();
-  const { getAllUsers, addUser, updateUser, deleteUser, changePassword, changeUserPassword, user } = useAuth();
+  const { getAllUsers, addUser, updateUser, deleteUser, changePassword, user } = useAuth();
   const [showAddUser, setShowAddUser] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showChangeUserPassword, setShowChangeUserPassword] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<string | null>(null);
 
   const [newUserData, setNewUserData] = useState({
@@ -31,11 +29,6 @@ const AdminManagement = () => {
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  const [userPasswordData, setUserPasswordData] = useState({
     newPassword: '',
     confirmPassword: ''
   });
@@ -192,46 +185,6 @@ const AdminManagement = () => {
     }
   };
 
-  const handleChangeUserPassword = (userId: string) => {
-    if (userPasswordData.newPassword !== userPasswordData.confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'New passwords do not match',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (userPasswordData.newPassword.length < 6) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters long',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const success = changeUserPassword(userId, userPasswordData.newPassword);
-    if (success) {
-      toast({
-        title: 'Success',
-        description: 'User password changed successfully!',
-        variant: 'default'
-      });
-      setUserPasswordData({
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setShowChangeUserPassword(null);
-    } else {
-      toast({
-        title: 'Error',
-        description: 'Failed to change user password',
-        variant: 'destructive'
-      });
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
       {/* Header */}
@@ -241,27 +194,25 @@ const AdminManagement = () => {
           <p className="text-gray-600">Manage users, admins, and system settings</p>
         </div>
         <div className="flex gap-3">
-          {user?.role === 'main-admin' && (
-            <Button
-              onClick={() => setShowAddUser(!showAddUser)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          )}
+          <Button
+            onClick={() => setShowAddUser(!showAddUser)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
           <Button
             onClick={() => setShowChangePassword(!showChangePassword)}
             variant="outline"
           >
             <Settings className="h-4 w-4 mr-2" />
-            Change My Password
+            Change Password
           </Button>
         </div>
       </div>
 
-      {/* Add User Form - Only for main admin */}
-      {showAddUser && user?.role === 'main-admin' && (
+      {/* Add User Form */}
+      {showAddUser && (
         <Card>
           <CardHeader>
             <CardTitle>Add New User</CardTitle>
@@ -345,11 +296,11 @@ const AdminManagement = () => {
         </Card>
       )}
 
-      {/* Change Own Password Form */}
+      {/* Change Password Form */}
       {showChangePassword && (
         <Card>
           <CardHeader>
-            <CardTitle>Change My Password</CardTitle>
+            <CardTitle>Change Password</CardTitle>
             <CardDescription>Update your account password</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -390,48 +341,6 @@ const AdminManagement = () => {
                 Change Password
               </Button>
               <Button onClick={() => setShowChangePassword(false)} variant="outline">
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Change User Password Form - Only for main admin */}
-      {showChangeUserPassword && user?.role === 'main-admin' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Change User Password</CardTitle>
-            <CardDescription>Set a new password for the selected user</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="userNewPassword">New Password</Label>
-                <Input
-                  id="userNewPassword"
-                  type="password"
-                  value={userPasswordData.newPassword}
-                  onChange={(e) => setUserPasswordData({...userPasswordData, newPassword: e.target.value})}
-                  placeholder="Enter new password"
-                />
-              </div>
-              <div>
-                <Label htmlFor="userConfirmPassword">Confirm Password</Label>
-                <Input
-                  id="userConfirmPassword"
-                  type="password"
-                  value={userPasswordData.confirmPassword}
-                  onChange={(e) => setUserPasswordData({...userPasswordData, confirmPassword: e.target.value})}
-                  placeholder="Confirm new password"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={() => handleChangeUserPassword(showChangeUserPassword)} className="bg-blue-600 hover:bg-blue-700">
-                Change Password
-              </Button>
-              <Button onClick={() => setShowChangeUserPassword(null)} variant="outline">
                 Cancel
               </Button>
             </div>
@@ -539,7 +448,7 @@ const AdminManagement = () => {
                         </>
                       ) : (
                         <>
-                          {userData.role !== 'main-admin' && user?.role === 'main-admin' && (
+                          {userData.role !== 'main-admin' && (
                             <>
                               <Button
                                 size="sm"
@@ -548,14 +457,6 @@ const AdminManagement = () => {
                                 className="h-8"
                               >
                                 <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowChangeUserPassword(userData.id)}
-                                className="h-8 text-blue-600 hover:text-blue-700"
-                              >
-                                <Key className="h-3 w-3" />
                               </Button>
                               <Button
                                 size="sm"
