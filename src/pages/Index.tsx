@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Search, Users, Plus } from 'lucide-react';
@@ -127,6 +128,11 @@ const Index = () => {
     setMassEntryState({ enabled, preset });
   };
 
+  // Create a wrapper function that accepts a Donor object
+  const isDonorAvailableWrapper = (donor: Donor): boolean => {
+    return isDonorAvailable(donor.lastDonationDate);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto p-3 sm:p-4 lg:p-6 max-w-7xl">
@@ -169,7 +175,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
-            <DashboardStats donors={donors} isDonorAvailable={isDonorAvailable} />
+            <DashboardStats donors={donors} isDonorAvailable={isDonorAvailableWrapper} />
             <DashboardCharts donors={donors} />
           </TabsContent>
 
@@ -197,7 +203,7 @@ const Index = () => {
               donors={donors} 
               onUpdateDonor={updateDonor}
               onRemoveDonor={removeDonor}
-              isDonorAvailable={isDonorAvailable}
+              isDonorAvailable={isDonorAvailableWrapper}
             />
           </TabsContent>
 

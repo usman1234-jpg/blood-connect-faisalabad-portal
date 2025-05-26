@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
     }
 
     if (filterBloodType !== 'all') {
-      filtered = filtered.filter(donor => donor.bloodType === filterBloodType);
+      filtered = filtered.filter(donor => donor.bloodGroup === filterBloodType);
     }
 
     if (filterAvailability !== 'all') {
@@ -169,8 +170,8 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
               <TableHead onClick={() => handleSort('name')} className="cursor-pointer">
                 Name {sortBy === 'name' && (sortOrder === 'asc' ? '▲' : '▼')}
               </TableHead>
-              <TableHead onClick={() => handleSort('bloodType')} className="cursor-pointer">
-                Blood Type {sortBy === 'bloodType' && (sortOrder === 'asc' ? '▲' : '▼')}
+              <TableHead onClick={() => handleSort('bloodGroup')} className="cursor-pointer">
+                Blood Type {sortBy === 'bloodGroup' && (sortOrder === 'asc' ? '▲' : '▼')}
               </TableHead>
               <TableHead onClick={() => handleSort('university')} className="cursor-pointer">
                 University {sortBy === 'university' && (sortOrder === 'asc' ? '▲' : '▼')}
@@ -192,7 +193,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
                 </TableCell>
                 <TableCell>
                   {editingId === donor.id ? (
-                    <Select value={editForm.bloodType || ''} onValueChange={(value) => setEditForm(prev => ({ ...prev, bloodType: value }))}>
+                    <Select value={editForm.bloodGroup || ''} onValueChange={(value) => setEditForm(prev => ({ ...prev, bloodGroup: value }))}>
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select blood type" />
                       </SelectTrigger>
@@ -203,7 +204,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
                       </SelectContent>
                     </Select>
                   ) : (
-                    donor.bloodType
+                    donor.bloodGroup
                   )}
                 </TableCell>
                 <TableCell>
