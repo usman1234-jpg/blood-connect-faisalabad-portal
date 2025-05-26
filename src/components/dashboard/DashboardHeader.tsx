@@ -11,7 +11,7 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader = ({ onExportCSV, universities, onAddUniversity }: DashboardHeaderProps) => {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
   
   const handleLogout = () => {
     logout();
@@ -28,10 +28,12 @@ const DashboardHeader = ({ onExportCSV, universities, onAddUniversity }: Dashboa
         </div>
         
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
-          <UniversityManager 
-            universities={universities}
-            onAddUniversity={onAddUniversity}
-          />
+          {isAdmin() && (
+            <UniversityManager 
+              universities={universities}
+              onAddUniversity={onAddUniversity}
+            />
+          )}
           
           <Button 
             onClick={onExportCSV}

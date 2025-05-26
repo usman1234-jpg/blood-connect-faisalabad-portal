@@ -21,11 +21,11 @@ interface AddDonorFormProps {
 
 const AddDonorForm = ({ onAddDonor, universities, massEntryState, onMassEntryStateChange }: AddDonorFormProps) => {
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { canEdit } = useAuth();
   const formRef = useRef<HTMLFormElement>(null);
   
-  // If user is not admin, show access denied message
-  if (!isAdmin()) {
+  // If user cannot edit, show access denied message
+  if (!canEdit()) {
     return (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <Card className="shadow-lg">

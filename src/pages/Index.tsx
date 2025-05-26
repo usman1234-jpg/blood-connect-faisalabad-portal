@@ -10,6 +10,7 @@ import DashboardCharts from '../components/dashboard/DashboardCharts';
 import { Donor, calculateNextDonationDate, universities as defaultUniversities } from '../types/donor';
 import { isDonorAvailable, exportDonorsToCSV, getUniversitiesFromDonors } from '../utils/donorUtils';
 import { useAuth } from '../contexts/AuthContext';
+import AdminManagement from '../components/AdminManagement';
 
 const Index = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
@@ -18,7 +19,7 @@ const Index = () => {
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
   const [universities, setUniversities] = useState<string[]>(defaultUniversities);
   const [massEntryState, setMassEntryState] = useState({ enabled: false, preset: {} });
-  const { isAdmin } = useAuth();
+  const { isAdmin, isMainAdmin, canEdit } = useAuth();
 
   // Load donors and universities from localStorage on component mount
   useEffect(() => {
@@ -136,17 +137,19 @@ const Index = () => {
         />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6 h-auto">
+          <TabsList className={`grid w-full ${isMainAdmin() ? 'grid-cols-5' : 'grid-cols-4'} mb-4 sm:mb-6 h-auto`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
               <BarChart className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="add-donor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Add Donor</span>
-              <span className="sm:hidden">Add</span>
-            </TabsTrigger>
+            {isAdmin() && (
+              <TabsTrigger value="add-donor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Add Donor</span>
+                <span className="sm:hidden">Add</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="search" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
               <Search className="h-3 w-3 sm:h-4 sm:w-4" />
               Search
@@ -156,6 +159,13 @@ const Index = () => {
               <span className="hidden sm:inline">All Donors</span>
               <span className="sm:hidden">All</span>
             </TabsTrigger>
+            {isMainAdmin() && (
+              <TabsTrigger value="admin" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Admin</span>
+                <span className="sm:hidden">Admin</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
@@ -163,14 +173,16 @@ const Index = () => {
             <DashboardCharts donors={donors} />
           </TabsContent>
 
-          <TabsContent value="add-donor">
-            <AddDonorForm 
-              onAddDonor={addDonor} 
-              universities={universities}
-              massEntryState={massEntryState}
-              onMassEntryStateChange={handleMassEntryStateChange}
-            />
-          </TabsContent>
+          {isAdmin() && (
+            <TabsContent value="add-donor">
+              <AddDonorForm 
+                onAddDonor={addDonor} 
+                universities={universities}
+                massEntryState={massEntryState}
+                onMassEntryStateChange={handleMassEntryStateChange}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="search">
             <DonorSearch 
@@ -188,6 +200,12 @@ const Index = () => {
               isDonorAvailable={isDonorAvailable}
             />
           </TabsContent>
+
+          {isMainAdmin() && (
+            <TabsContent value="admin">
+              <AdminManagement />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
