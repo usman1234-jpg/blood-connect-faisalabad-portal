@@ -24,7 +24,7 @@ const AdminManagement = () => {
     university: '',
     fullName: '',
     note: '',
-    password: '' // Add password field for initial setup
+    password: ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -61,10 +61,7 @@ const AdminManagement = () => {
       return;
     }
 
-    // Create user data without password for the addUser function
-    const { password, ...userDataWithoutPassword } = newUserData;
-    
-    const success = addUser(userDataWithoutPassword);
+    const success = addUser(newUserData);
     if (success) {
       toast({
         title: 'Success',
