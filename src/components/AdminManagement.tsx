@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,8 @@ const AdminManagement = () => {
     role: 'user' as 'admin' | 'user',
     university: '',
     fullName: '',
-    note: ''
+    note: '',
+    password: '' // Add password field for initial setup
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -43,20 +43,32 @@ const AdminManagement = () => {
   const users = getAllUsers();
 
   const handleAddUser = () => {
-    if (!newUserData.username || !newUserData.fullName) {
+    if (!newUserData.username || !newUserData.fullName || !newUserData.password) {
       toast({
         title: 'Error',
-        description: 'Username and full name are required',
+        description: 'Username, full name, and password are required',
         variant: 'destructive'
       });
       return;
     }
 
-    const success = addUser(newUserData);
+    if (newUserData.password.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'Password must be at least 6 characters long',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Create user data without password for the addUser function
+    const { password, ...userDataWithoutPassword } = newUserData;
+    
+    const success = addUser(userDataWithoutPassword);
     if (success) {
       toast({
         title: 'Success',
-        description: 'User added successfully! Default password: temppass123',
+        description: `User added successfully! Password: ${newUserData.password}`,
         variant: 'default'
       });
       setNewUserData({
@@ -64,7 +76,8 @@ const AdminManagement = () => {
         role: 'user',
         university: '',
         fullName: '',
-        note: ''
+        note: '',
+        password: ''
       });
       setShowAddUser(false);
     } else {
@@ -206,7 +219,7 @@ const AdminManagement = () => {
         <Card>
           <CardHeader>
             <CardTitle>Add New User</CardTitle>
-            <CardDescription>Create a new user or admin account</CardDescription>
+            <CardDescription>Create a new user or admin account with initial password</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -229,14 +242,24 @@ const AdminManagement = () => {
                 />
               </div>
               <div>
+                <Label htmlFor="password">Initial Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({...newUserData, password: e.target.value})}
+                  placeholder="Enter initial password (min 6 characters)"
+                />
+              </div>
+              <div>
                 <Label htmlFor="role">Role</Label>
                 <Select value={newUserData.role} onValueChange={(value) => setNewUserData({...newUserData, role: value as 'admin' | 'user'})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">User (Read Only)</SelectItem>
+                    <SelectItem value="admin">Admin (Can Edit)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -372,7 +395,8 @@ const AdminManagement = () => {
                       userData.role === 'admin' ? 'bg-blue-100 text-blue-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {userData.role}
+                      {userData.role === 'main-admin' ? 'Main Admin' : 
+                       userData.role === 'admin' ? 'Admin' : 'User'}
                     </span>
                   </TableCell>
                   <TableCell>

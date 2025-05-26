@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type UserRole = 'main-admin' | 'admin' | 'user';
@@ -23,7 +22,7 @@ interface AuthContextType {
   isMainAdmin: () => boolean;
   canEdit: () => boolean;
   getAllUsers: () => User[];
-  addUser: (userData: Omit<User, 'id' | 'dateAdded' | 'addedBy'>) => boolean;
+  addUser: (userData: Omit<User, 'id' | 'dateAdded' | 'addedBy'> & { password: string }) => boolean;
   updateUser: (userId: string, userData: Partial<User>) => boolean;
   deleteUser: (userId: string) => boolean;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
@@ -148,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return users.map(({ password, ...userData }) => userData);
   };
 
-  const addUser = (userData: Omit<User, 'id' | 'dateAdded' | 'addedBy'>): boolean => {
+  const addUser = (userData: Omit<User, 'id' | 'dateAdded' | 'addedBy'> & { password: string }): boolean => {
     if (!isMainAdmin()) return false;
 
     // Check if username already exists
@@ -156,10 +155,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
+    const { password, ...userDataWithoutPassword } = userData;
+
     const newUser = {
-      ...userData,
+      ...userDataWithoutPassword,
       id: Date.now().toString(),
-      password: 'temppass123', // Default temporary password
+      password: password, // Use the provided password instead of default
       dateAdded: new Date().toISOString().split('T')[0],
       addedBy: user?.username || 'Unknown'
     };

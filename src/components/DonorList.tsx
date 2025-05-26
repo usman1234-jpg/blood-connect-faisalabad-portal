@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart, Home } from 'lucide-react';
+import { Users, Edit, Phone, MapPin, Calendar, Search, Trash2, AlertCircle, Clock, School, Heart, Home, Lock } from 'lucide-react';
 import { Donor, BloodGroup, bloodGroups, calculateNextDonationDate, hasDonorGraduated, universities } from '../types/donor';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DonorListProps {
   donors: Donor[];
@@ -20,6 +21,7 @@ interface DonorListProps {
 
 const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: DonorListProps) => {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDonor, setSelectedDonor] = useState<Donor | null>(null);
   const [editFormData, setEditFormData] = useState<Donor | null>(null);
@@ -49,6 +51,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
   });
 
   const handleEditDonor = (donor: Donor) => {
+    if (!isAdmin()) return;
     setEditFormData({ ...donor });
     setSelectedDonor(donor);
     setIsEditDialogOpen(true);
@@ -56,7 +59,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
 
   const handleUpdateDonor = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editFormData) return;
+    if (!editFormData || !isAdmin()) return;
 
     // Calculate next donation date if last donation date is provided
     const nextDonationDate = editFormData.lastDonationDate ? 
@@ -79,6 +82,8 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
   };
 
   const handleUpdateLastDonation = (donor: Donor) => {
+    if (!isAdmin()) return;
+    
     const today = new Date().toISOString().split('T')[0];
     const nextDonationDate = calculateNextDonationDate(today);
     
@@ -97,12 +102,13 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
   };
 
   const confirmDeleteDonor = (id: string) => {
+    if (!isAdmin()) return;
     setDonorToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDeleteDonor = () => {
-    if (donorToDelete && onRemoveDonor) {
+    if (donorToDelete && onRemoveDonor && isAdmin()) {
       onRemoveDonor(donorToDelete);
       setIsDeleteDialogOpen(false);
       setDonorToDelete(null);
@@ -200,35 +206,42 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => handleEditDonor(donor)}
-              variant="outline"
-              size="sm"
-              className="flex-1"
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-            <Button
-              onClick={() => handleUpdateLastDonation(donor)}
-              variant="outline"
-              size="sm"
-              className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-            >
-              Mark Donated Today
-            </Button>
-            {onRemoveDonor && (
+          {isAdmin() ? (
+            <div className="flex gap-2">
               <Button
-                onClick={() => confirmDeleteDonor(donor.id)}
+                onClick={() => handleEditDonor(donor)}
                 variant="outline"
                 size="sm"
-                className="text-red-600 hover:bg-red-50"
+                className="flex-1"
               >
-                <Trash2 className="h-4 w-4" />
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
               </Button>
-            )}
-          </div>
+              <Button
+                onClick={() => handleUpdateLastDonation(donor)}
+                variant="outline"
+                size="sm"
+                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+              >
+                Mark Donated Today
+              </Button>
+              {onRemoveDonor && (
+                <Button
+                  onClick={() => confirmDeleteDonor(donor.id)}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-2 text-gray-500">
+              <Lock className="h-4 w-4 mr-2" />
+              <span className="text-sm">View only access</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -243,7 +256,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
             All Donors ({donors.length})
           </CardTitle>
           <CardDescription>
-            Manage and view all registered blood donors
+            {isAdmin() ? 'Manage and view all registered blood donors' : 'View all registered blood donors'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -280,199 +293,203 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
         </CardContent>
       </Card>
 
-      {/* Edit Donor Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Donor Information</DialogTitle>
-            <DialogDescription>
-              Update donor details and donation history
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editFormData && (
-            <form onSubmit={handleUpdateDonor} className="space-y-4" onKeyDown={handleKeyDown}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="editName">Full Name</Label>
-                  <Input
-                    id="editName"
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    required
-                  />
-                </div>
+      {/* Edit Donor Dialog - Only for Admins */}
+      {isAdmin() && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Donor Information</DialogTitle>
+              <DialogDescription>
+                Update donor details and donation history
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editFormData && (
+              <form onSubmit={handleUpdateDonor} className="space-y-4" onKeyDown={handleKeyDown}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editName">Full Name</Label>
+                    <Input
+                      id="editName"
+                      value={editFormData.name}
+                      onChange={(e) => setEditFormData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editContact">Contact Number</Label>
-                  <Input
-                    id="editContact"
-                    value={editFormData.contact}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, contact: e.target.value } : null)}
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editContact">Contact Number</Label>
+                    <Input
+                      id="editContact"
+                      value={editFormData.contact}
+                      onChange={(e) => setEditFormData(prev => prev ? { ...prev, contact: e.target.value } : null)}
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editCity">City</Label>
-                  <Input
-                    id="editCity"
-                    value={editFormData.city}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, city: e.target.value } : null)}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editCity">City</Label>
+                    <Input
+                      id="editCity"
+                      value={editFormData.city}
+                      onChange={(e) => setEditFormData(prev => prev ? { ...prev, city: e.target.value } : null)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editUniversity">University</Label>
-                  <Select 
-                    value={editFormData.university} 
-                    onValueChange={(value) => setEditFormData(prev => prev ? { ...prev, university: value } : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {universities.map((uni) => (
-                        <SelectItem key={uni} value={uni}>{uni}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editUniversity">University</Label>
+                    <Select 
+                      value={editFormData.university} 
+                      onValueChange={(value) => setEditFormData(prev => prev ? { ...prev, university: value } : null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {universities.map((uni) => (
+                          <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editDepartment">Department</Label>
-                  <Input
-                    id="editDepartment"
-                    value={editFormData.department}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, department: e.target.value } : null)}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editDepartment">Department</Label>
+                    <Input
+                      id="editDepartment"
+                      value={editFormData.department}
+                      onChange={(e) => setEditFormData(prev => prev ? { ...prev, department: e.target.value } : null)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editSemester">Semester</Label>
-                  <Input
-                    id="editSemester"
-                    value={editFormData.semester}
-                    onChange={(e) => setEditFormData(prev => prev ? { ...prev, semester: e.target.value } : null)}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editSemester">Semester</Label>
+                    <Input
+                      id="editSemester"
+                      value={editFormData.semester}
+                      onChange={(e) => setEditFormData(prev => prev ? { ...prev, semester: e.target.value } : null)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editBloodGroup">Blood Group</Label>
-                  <Select 
-                    value={editFormData.bloodGroup} 
-                    onValueChange={(value) => setEditFormData(prev => prev ? { ...prev, bloodGroup: value as BloodGroup } : null)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bloodGroups.map((group) => (
-                        <SelectItem key={group} value={group}>{group}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editBloodGroup">Blood Group</Label>
+                    <Select 
+                      value={editFormData.bloodGroup} 
+                      onValueChange={(value) => setEditFormData(prev => prev ? { ...prev, bloodGroup: value as BloodGroup } : null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bloodGroups.map((group) => (
+                          <SelectItem key={group} value={group}>{group}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editLastDonationDate">Last Donation Date</Label>
-                  <Input
-                    id="editLastDonationDate"
-                    type="date"
-                    value={editFormData.lastDonationDate}
-                    onChange={(e) => {
-                      const newDate = e.target.value;
-                      setEditFormData(prev => {
-                        if (!prev) return null;
-                        const nextDonationDate = newDate ? calculateNextDonationDate(newDate) : '';
-                        return { 
-                          ...prev, 
-                          lastDonationDate: newDate,
-                          nextDonationDate
-                        };
-                      });
-                    }}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editLastDonationDate">Last Donation Date</Label>
+                    <Input
+                      id="editLastDonationDate"
+                      type="date"
+                      value={editFormData.lastDonationDate}
+                      onChange={(e) => {
+                        const newDate = e.target.value;
+                        setEditFormData(prev => {
+                          if (!prev) return null;
+                          const nextDonationDate = newDate ? calculateNextDonationDate(newDate) : '';
+                          return { 
+                            ...prev, 
+                            lastDonationDate: newDate,
+                            nextDonationDate
+                          };
+                        });
+                      }}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="editSemesterEndDate">Semester End Date</Label>
-                  <Input
-                    id="editSemesterEndDate"
-                    type="date"
-                    value={editFormData.semesterEndDate || ''}
-                    onChange={(e) => setEditFormData(prev => prev ? { 
-                      ...prev, 
-                      semesterEndDate: e.target.value
-                    } : null)}
-                  />
-                </div>
-
-                <div className="space-y-2 flex items-center">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="editIsHostelResident" 
-                      checked={editFormData.isHostelResident}
-                      onCheckedChange={(checked) => setEditFormData(prev => prev ? { 
+                  <div className="space-y-2">
+                    <Label htmlFor="editSemesterEndDate">Semester End Date</Label>
+                    <Input
+                      id="editSemesterEndDate"
+                      type="date"
+                      value={editFormData.semesterEndDate || ''}
+                      onChange={(e) => setEditFormData(prev => prev ? { 
                         ...prev, 
-                        isHostelResident: !!checked
+                        semesterEndDate: e.target.value
                       } : null)}
                     />
-                    <Label htmlFor="editIsHostelResident" className="cursor-pointer">Lives in Hostel</Label>
                   </div>
+
+                  <div className="space-y-2 flex items-center">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="editIsHostelResident" 
+                        checked={editFormData.isHostelResident}
+                        onCheckedChange={(checked) => setEditFormData(prev => prev ? { 
+                          ...prev, 
+                          isHostelResident: !!checked
+                        } : null)}
+                      />
+                      <Label htmlFor="editIsHostelResident" className="cursor-pointer">Lives in Hostel</Label>
+                    </div>
+                  </div>
+
+                  {editFormData.lastDonationDate && (
+                    <div className="space-y-2">
+                      <Label htmlFor="editNextDonationDate">Next Possible Donation Date</Label>
+                      <Input
+                        id="editNextDonationDate"
+                        type="date"
+                        value={editFormData.nextDonationDate || ''}
+                        disabled
+                        className="bg-gray-50"
+                      />
+                      <p className="text-xs text-gray-500">Automatically calculated (3 months after last donation)</p>
+                    </div>
+                  )}
                 </div>
 
-                {editFormData.lastDonationDate && (
-                  <div className="space-y-2">
-                    <Label htmlFor="editNextDonationDate">Next Possible Donation Date</Label>
-                    <Input
-                      id="editNextDonationDate"
-                      type="date"
-                      value={editFormData.nextDonationDate || ''}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">Automatically calculated (3 months after last donation)</p>
-                  </div>
-                )}
-              </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                    Update Donor
+                  </Button>
+                </div>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Update Donor
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Remove Donor</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to remove this donor? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex space-x-2 justify-end">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteDonor}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Remove Donor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Dialog - Only for Admins */}
+      {isAdmin() && (
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Remove Donor</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to remove this donor? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteDonor}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Remove Donor
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
