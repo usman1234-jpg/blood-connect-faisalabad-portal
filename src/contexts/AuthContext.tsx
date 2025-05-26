@@ -26,6 +26,7 @@ interface AuthContextType {
   updateUser: (userId: string, userData: Partial<User>) => boolean;
   deleteUser: (userId: string) => boolean;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
+  changeUserPassword: (userId: string, newPassword: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -207,6 +208,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const changeUserPassword = (userId: string, newPassword: string): boolean => {
+    if (!isMainAdmin()) return false;
+
+    setUsers(users.map(u => 
+      u.id === userId 
+        ? { ...u, password: newPassword }
+        : u
+    ));
+    return true;
+  };
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -220,7 +232,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addUser,
       updateUser,
       deleteUser,
-      changePassword
+      changePassword,
+      changeUserPassword
     }}>
       {children}
     </AuthContext.Provider>
