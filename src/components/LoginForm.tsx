@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, User, Mail } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,7 +12,6 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,41 +19,17 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast({
-            title: "Sign Up Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Sign Up Successful",
-            description: "Please check your email to verify your account.",
-            variant: "default",
-          });
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
         });
-
-        if (error) {
-          toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
       }
     } catch (error) {
       toast({
@@ -76,10 +51,7 @@ const LoginForm = () => {
           </div>
           <CardTitle className="text-2xl">Blood Connect Portal</CardTitle>
           <CardDescription>
-            {isSignUp 
-              ? "Create an account to access the donor management system"
-              : "Please enter your credentials to access the donor management system"
-            }
+            Please enter your credentials to access the donor management system
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -119,25 +91,16 @@ const LoginForm = () => {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading 
-                ? (isSignUp ? "Creating account..." : "Signing in...") 
-                : (isSignUp ? "Sign Up" : "Sign In")
-              }
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
-            <div className="text-center">
-              <Button 
-                type="button" 
-                variant="link" 
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm"
-              >
-                {isSignUp 
-                  ? "Already have an account? Sign in" 
-                  : "Don't have an account? Sign up"
-                }
-              </Button>
-            </div>
           </form>
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium text-gray-800 mb-2">Main Admin Credentials:</h3>
+            <p className="text-sm text-gray-600">
+              <strong>Email:</strong> admin@bloodconnect.com<br/>
+              <strong>Password:</strong> BloodConnect2024!
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>
