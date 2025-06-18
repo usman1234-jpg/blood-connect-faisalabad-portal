@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Search, Users, Plus } from 'lucide-react';
@@ -21,6 +20,19 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
   const [universities, setUniversities] = useState<string[]>([]);
+  const [massEntryState, setMassEntryState] = useState({
+    enabled: false,
+    preset: {
+      university: '',
+      department: '',
+      semester: '',
+      city: 'Faisalabad',
+      gender: 'Male',
+      isHostelResident: false,
+      semesterEndDate: ''
+    }
+  });
+  
   const { user, userRole, isAdmin, isMainAdmin } = useSupabaseAuth();
   const { donors, loading, addDonor, updateDonor, removeDonor, refreshDonors } = useDonors();
   const { toast } = useToast();
@@ -211,8 +223,8 @@ const Index = () => {
               <AddDonorForm 
                 onAddDonor={handleAddDonor} 
                 universities={universities}
-                massEntryState={false}
-                onMassEntryStateChange={() => {}}
+                massEntryState={massEntryState}
+                onMassEntryStateChange={setMassEntryState}
               />
             </TabsContent>
           )}
