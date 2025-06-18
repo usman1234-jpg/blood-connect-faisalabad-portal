@@ -14,6 +14,7 @@ import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { useDonors } from '../hooks/useDonors';
 import AdminManagement from '../components/AdminManagement';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
@@ -210,6 +211,8 @@ const Index = () => {
               <AddDonorForm 
                 onAddDonor={handleAddDonor} 
                 universities={universities}
+                massEntryState={false}
+                onMassEntryStateChange={() => {}}
               />
             </TabsContent>
           )}

@@ -93,13 +93,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const legacyUser: User | null = user ? {
     id: user.id,
-    username: user.username || user.email || '',
+    username: (user as any).username || user.email || '',
     role: userRole as UserRole,
-    university: user.university,
-    fullName: user.full_name,
-    note: user.note,
-    dateAdded: user.date_added || '',
-    addedBy: user.added_by
+    university: (user as any).university,
+    fullName: (user as any).full_name,
+    note: (user as any).note,
+    dateAdded: (user as any).date_added || '',
+    addedBy: (user as any).added_by
   } : null;
 
   return (
