@@ -164,6 +164,10 @@ const Index = () => {
     }
   };
 
+  const handleMassEntryStateChange = (enabled: boolean, preset: any) => {
+    setMassEntryState({ enabled, preset });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
@@ -224,7 +228,7 @@ const Index = () => {
                 onAddDonor={handleAddDonor} 
                 universities={universities}
                 massEntryState={massEntryState}
-                onMassEntryStateChange={setMassEntryState}
+                onMassEntryStateChange={handleMassEntryStateChange}
               />
             </TabsContent>
           )}
