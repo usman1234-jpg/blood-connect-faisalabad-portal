@@ -4,35 +4,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '../contexts/AuthContext';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginForm = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate loading for better UX
-    setTimeout(() => {
-      const success = login(username, password);
-      
-      if (!success) {
-        toast({
-          title: "Login Failed",
-          description: "Invalid username or password. Please try again.",
-          variant: "destructive",
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
         });
+
+        if (error) {
+          toast({
+            title: "Sign Up Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Sign Up Successful",
+            description: "Please check your email to verify your account.",
+            variant: "default",
+          });
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          toast({
+            title: "Login Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       }
-      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
@@ -44,21 +76,24 @@ const LoginForm = () => {
           </div>
           <CardTitle className="text-2xl">Blood Connect Portal</CardTitle>
           <CardDescription>
-            Please enter your credentials to access the donor management system
+            {isSignUp 
+              ? "Create an account to access the donor management system"
+              : "Please enter your credentials to access the donor management system"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Enter email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -84,8 +119,24 @@ const LoginForm = () => {
               className="w-full" 
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading 
+                ? (isSignUp ? "Creating account..." : "Signing in...") 
+                : (isSignUp ? "Sign Up" : "Sign In")
+              }
             </Button>
+            <div className="text-center">
+              <Button 
+                type="button" 
+                variant="link" 
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm"
+              >
+                {isSignUp 
+                  ? "Already have an account? Sign in" 
+                  : "Don't have an account? Sign up"
+                }
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
