@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+
+import React, { createContext, useContext } from 'react';
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 
 type UserRole = 'main-admin' | 'admin' | 'user';
 
@@ -38,179 +40,72 @@ export const useAuth = () => {
   return context;
 };
 
-// Default main admin credentials
-const DEFAULT_MAIN_ADMIN = {
-  id: 'main-admin-1',
-  username: 'admin',
-  password: 'bloodconnect2024',
-  role: 'main-admin' as UserRole,
-  university: 'System',
-  fullName: 'Main Administrator',
-  note: 'Default main administrator',
-  dateAdded: '2024-01-01',
-  addedBy: 'System'
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<(User & { password: string })[]>([]);
+  const { user, userRole, isAuthenticated, signOut } = useSupabaseAuth();
 
-  // Initialize users and load from localStorage
-  useEffect(() => {
-    const savedUsers = localStorage.getItem('bloodConnectUsers');
-    if (savedUsers) {
-      try {
-        const parsedUsers = JSON.parse(savedUsers);
-        setUsers(parsedUsers);
-      } catch (error) {
-        console.error('Error parsing users from localStorage:', error);
-        // Initialize with default main admin if parsing fails
-        const defaultUsers = [DEFAULT_MAIN_ADMIN];
-        setUsers(defaultUsers);
-        localStorage.setItem('bloodConnectUsers', JSON.stringify(defaultUsers));
-      }
-    } else {
-      // Initialize with default main admin
-      const defaultUsers = [DEFAULT_MAIN_ADMIN];
-      setUsers(defaultUsers);
-      localStorage.setItem('bloodConnectUsers', JSON.stringify(defaultUsers));
-    }
-
-    // Check if user is already logged in
-    const authStatus = localStorage.getItem('bloodConnectAuth');
-    const userData = localStorage.getItem('bloodConnectUser');
-    if (authStatus === 'true' && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        setIsAuthenticated(true);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        logout();
-      }
-    }
-  }, []);
-
-  // Save users to localStorage whenever users change
-  useEffect(() => {
-    if (users.length > 0) {
-      localStorage.setItem('bloodConnectUsers', JSON.stringify(users));
-    }
-  }, [users]);
-
+  // Legacy compatibility functions - these now just redirect to Supabase auth
   const login = (username: string, password: string): boolean => {
-    const validUser = users.find(
-      user => user.username === username && user.password === password
-    );
-    
-    if (validUser) {
-      const userData: User = {
-        id: validUser.id,
-        username: validUser.username,
-        role: validUser.role,
-        university: validUser.university,
-        fullName: validUser.fullName,
-        note: validUser.note,
-        dateAdded: validUser.dateAdded,
-        addedBy: validUser.addedBy
-      };
-      setIsAuthenticated(true);
-      setUser(userData);
-      localStorage.setItem('bloodConnectAuth', 'true');
-      localStorage.setItem('bloodConnectUser', JSON.stringify(userData));
-      return true;
-    }
+    console.warn('Legacy login function called - use Supabase authentication instead');
     return false;
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('bloodConnectAuth');
-    localStorage.removeItem('bloodConnectUser');
+    signOut();
   };
 
   const isAdmin = (): boolean => {
-    return user?.role === 'admin' || user?.role === 'main-admin';
+    return userRole === 'admin' || userRole === 'main-admin';
   };
 
   const isMainAdmin = (): boolean => {
-    return user?.role === 'main-admin';
+    return userRole === 'main-admin';
   };
 
   const canEdit = (): boolean => {
-    return user?.role === 'admin' || user?.role === 'main-admin';
+    return userRole === 'admin' || userRole === 'main-admin';
   };
 
+  // Legacy functions - these are now handled in AdminManagement component
   const getAllUsers = (): User[] => {
-    return users.map(({ password, ...userData }) => userData);
+    console.warn('Legacy getAllUsers function called - use AdminManagement component instead');
+    return [];
   };
 
   const addUser = (userData: Omit<User, 'id' | 'dateAdded' | 'addedBy'> & { password: string }): boolean => {
-    if (!isMainAdmin()) return false;
-
-    // Check if username already exists
-    if (users.some(u => u.username === userData.username)) {
-      return false;
-    }
-
-    const { password, ...userDataWithoutPassword } = userData;
-
-    const newUser = {
-      ...userDataWithoutPassword,
-      id: Date.now().toString(),
-      password: password, // Use the provided password instead of default
-      dateAdded: new Date().toISOString().split('T')[0],
-      addedBy: user?.username || 'Unknown'
-    };
-
-    setUsers([...users, newUser]);
-    return true;
+    console.warn('Legacy addUser function called - use AdminManagement component instead');
+    return false;
   };
 
   const updateUser = (userId: string, userData: Partial<User>): boolean => {
-    if (!isMainAdmin()) return false;
-
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, ...userData }
-        : user
-    ));
-    return true;
+    console.warn('Legacy updateUser function called - use AdminManagement component instead');
+    return false;
   };
 
   const deleteUser = (userId: string): boolean => {
-    if (!isMainAdmin()) return false;
-    
-    // Prevent deleting main admin
-    const userToDelete = users.find(u => u.id === userId);
-    if (userToDelete?.role === 'main-admin') return false;
-
-    setUsers(users.filter(user => user.id !== userId));
-    return true;
+    console.warn('Legacy deleteUser function called - use AdminManagement component instead');
+    return false;
   };
 
   const changePassword = (oldPassword: string, newPassword: string): boolean => {
-    if (!user) return false;
-
-    const currentUser = users.find(u => u.id === user.id);
-    if (!currentUser || currentUser.password !== oldPassword) {
-      return false;
-    }
-
-    setUsers(users.map(u => 
-      u.id === user.id 
-        ? { ...u, password: newPassword }
-        : u
-    ));
-    return true;
+    console.warn('Legacy changePassword function called - use AdminManagement component instead');
+    return false;
   };
+
+  const legacyUser: User | null = user ? {
+    id: user.id,
+    username: user.username || user.email || '',
+    role: userRole as UserRole,
+    university: user.university,
+    fullName: user.full_name,
+    note: user.note,
+    dateAdded: user.date_added || '',
+    addedBy: user.added_by
+  } : null;
 
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
-      user, 
+      user: legacyUser, 
       login, 
       logout, 
       isAdmin, 

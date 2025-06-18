@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Search, Users, Plus } from 'lucide-react';
@@ -7,77 +8,48 @@ import DonorList from '../components/DonorList';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import DashboardStats from '../components/dashboard/DashboardStats';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
-import { Donor, calculateNextDonationDate, universities as defaultUniversities } from '../types/donor';
-import { isDonorAvailable, exportDonorsToCSV, getUniversitiesFromDonors } from '../utils/donorUtils';
-import { useAuth } from '../contexts/AuthContext';
+import { Donor, calculateNextDonationDate } from '../types/donor';
+import { isDonorAvailable, exportDonorsToCSV } from '../utils/donorUtils';
+import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { useDonors } from '../hooks/useDonors';
 import AdminManagement from '../components/AdminManagement';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const [donors, setDonors] = useState<Donor[]>([]);
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [persistedSearchTab, setPersistedSearchTab] = useState<string | null>(null);
-  const [universities, setUniversities] = useState<string[]>(defaultUniversities);
-  const [massEntryState, setMassEntryState] = useState({ enabled: false, preset: {} });
-  const { isAdmin, isMainAdmin, canEdit } = useAuth();
+  const [universities, setUniversities] = useState<string[]>([]);
+  const { user, userRole, isAdmin, isMainAdmin } = useSupabaseAuth();
+  const { donors, loading, addDonor, updateDonor, removeDonor, refreshDonors } = useDonors();
+  const { toast } = useToast();
 
-  // Load donors and universities from localStorage on component mount
+  // Load universities from Supabase
   useEffect(() => {
-    const savedDonors = localStorage.getItem('bloodDonors');
-    if (savedDonors) {
+    const loadUniversities = async () => {
       try {
-        const parsedDonors = JSON.parse(savedDonors);
-        const updatedDonors = parsedDonors.map((donor: Donor) => ({
-          ...donor,
-          gender: donor.gender || 'Male',
-          nextDonationDate: donor.nextDonationDate || (donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''),
-          isHostelResident: donor.isHostelResident !== undefined ? donor.isHostelResident : false,
-          semesterEndDate: donor.semesterEndDate || '',
-          dateAdded: donor.dateAdded || new Date().toISOString().split('T')[0] // Add current date for existing donors
-        }));
-        setDonors(updatedDonors);
+        const { data, error } = await supabase
+          .from('universities')
+          .select('name')
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+        
+        const universityNames = data?.map(u => u.name) || [];
+        setUniversities(universityNames);
       } catch (error) {
-        console.error("Error parsing donors from localStorage:", error);
-        setDonors([]);
+        console.error('Error loading universities:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load universities',
+          variant: 'destructive'
+        });
       }
-    }
+    };
 
-    const savedUniversities = localStorage.getItem('universities');
-    if (savedUniversities) {
-      try {
-        const parsedUniversities = JSON.parse(savedUniversities);
-        setUniversities([...new Set([...defaultUniversities, ...parsedUniversities])]);
-      } catch (error) {
-        console.error("Error parsing universities from localStorage:", error);
-      }
-    }
-
-    // Load mass entry state from localStorage
-    const savedMassEntryState = localStorage.getItem('massEntryState');
-    if (savedMassEntryState) {
-      try {
-        const parsedState = JSON.parse(savedMassEntryState);
-        setMassEntryState(parsedState);
-      } catch (error) {
-        console.error("Error parsing mass entry state from localStorage:", error);
-      }
-    }
-  }, []);
-
-  // Save donors to localStorage whenever donors change
-  useEffect(() => {
-    localStorage.setItem('bloodDonors', JSON.stringify(donors));
-  }, [donors]);
-
-  // Save universities to localStorage whenever universities change
-  useEffect(() => {
-    localStorage.setItem('universities', JSON.stringify(universities));
-  }, [universities]);
-
-  // Save mass entry state to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('massEntryState', JSON.stringify(massEntryState));
-  }, [massEntryState]);
+    loadUniversities();
+  }, [toast]);
 
   // Handle tab changes
   const handleTabChange = (value: string) => {
@@ -94,38 +66,98 @@ const Index = () => {
     setActiveTab(value);
   };
 
-  const addDonor = (donor: Omit<Donor, 'id'>) => {
-    const newDonor: Donor = {
-      ...donor,
-      id: Date.now().toString(),
-      nextDonationDate: donor.lastDonationDate ? calculateNextDonationDate(donor.lastDonationDate) : ''
-    };
-    setDonors([...donors, newDonor]);
+  const handleAddDonor = async (donorData: Omit<Donor, 'id'>) => {
+    try {
+      await addDonor(donorData);
+      toast({
+        title: 'Success',
+        description: 'Donor added successfully!',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error adding donor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add donor',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const updateDonor = (updatedDonor: Donor) => {
-    setDonors(donors.map(donor => 
-      donor.id === updatedDonor.id ? updatedDonor : donor
-    ));
+  const handleUpdateDonor = async (updatedDonor: Donor) => {
+    try {
+      await updateDonor(updatedDonor);
+      toast({
+        title: 'Success',
+        description: 'Donor updated successfully!',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error updating donor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update donor',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const removeDonor = (id: string) => {
-    setDonors(donors.filter(donor => donor.id !== id));
+  const handleRemoveDonor = async (id: string) => {
+    try {
+      await removeDonor(id);
+      toast({
+        title: 'Success',
+        description: 'Donor removed successfully!',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error removing donor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove donor',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleExportCSV = () => {
     exportDonorsToCSV(donors, isDonorAvailable);
   };
 
-  const handleAddUniversity = (universityName: string) => {
-    if (!universities.includes(universityName)) {
+  const handleAddUniversity = async (universityName: string) => {
+    try {
+      const { error } = await supabase
+        .from('universities')
+        .insert([{ 
+          name: universityName,
+          added_by: user?.id 
+        }]);
+
+      if (error) throw error;
+
       setUniversities([...universities, universityName]);
+      toast({
+        title: 'Success',
+        description: 'University added successfully!',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error adding university:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add university',
+        variant: 'destructive'
+      });
     }
   };
 
-  const handleMassEntryStateChange = (enabled: boolean, preset: any) => {
-    setMassEntryState({ enabled, preset });
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
@@ -137,13 +169,13 @@ const Index = () => {
         />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className={`grid w-full ${isMainAdmin() ? 'grid-cols-5' : 'grid-cols-4'} mb-4 sm:mb-6 h-auto`}>
+          <TabsList className={`grid w-full ${isMainAdmin ? 'grid-cols-5' : 'grid-cols-4'} mb-4 sm:mb-6 h-auto`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
               <BarChart className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden">Stats</span>
             </TabsTrigger>
-            {isAdmin() && (
+            {isAdmin && (
               <TabsTrigger value="add-donor" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
                 <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Add Donor</span>
@@ -159,7 +191,7 @@ const Index = () => {
               <span className="hidden sm:inline">All Donors</span>
               <span className="sm:hidden">All</span>
             </TabsTrigger>
-            {isMainAdmin() && (
+            {isMainAdmin && (
               <TabsTrigger value="admin" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 sm:py-3">
                 <Users className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Admin</span>
@@ -173,13 +205,11 @@ const Index = () => {
             <DashboardCharts donors={donors} />
           </TabsContent>
 
-          {isAdmin() && (
+          {isAdmin && (
             <TabsContent value="add-donor">
               <AddDonorForm 
-                onAddDonor={addDonor} 
+                onAddDonor={handleAddDonor} 
                 universities={universities}
-                massEntryState={massEntryState}
-                onMassEntryStateChange={handleMassEntryStateChange}
               />
             </TabsContent>
           )}
@@ -195,13 +225,13 @@ const Index = () => {
           <TabsContent value="donors">
             <DonorList 
               donors={donors} 
-              onUpdateDonor={updateDonor}
-              onRemoveDonor={removeDonor}
+              onUpdateDonor={handleUpdateDonor}
+              onRemoveDonor={handleRemoveDonor}
               isDonorAvailable={isDonorAvailable}
             />
           </TabsContent>
 
-          {isMainAdmin() && (
+          {isMainAdmin && (
             <TabsContent value="admin">
               <AdminManagement />
             </TabsContent>
