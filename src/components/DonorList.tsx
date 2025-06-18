@@ -29,6 +29,7 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [donorToDelete, setDonorToDelete] = useState<string | null>(null);
 
+  // Sort donors: available first, then by last donation date
   const filteredDonors = donors.filter(donor =>
     donor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     donor.contact.includes(searchTerm) ||
@@ -37,7 +38,6 @@ const DonorList = ({ donors, onUpdateDonor, onRemoveDonor, isDonorAvailable }: D
     donor.bloodGroup.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Sort donors: available first, then by last donation date
   const sortedDonors = [...filteredDonors].sort((a, b) => {
     const aAvailable = isDonorAvailable(a.lastDonationDate);
     const bAvailable = isDonorAvailable(b.lastDonationDate);
