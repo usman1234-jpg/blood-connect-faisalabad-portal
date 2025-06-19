@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { useCustomAuth } from '../hooks/useCustomAuth';
 import LoginForm from './LoginForm';
 
 interface ProtectedRouteProps {
@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useSupabaseAuth();
+  const { isAuthenticated, loading } = useCustomAuth();
 
   if (loading) {
     return (

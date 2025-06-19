@@ -9,7 +9,7 @@ import DashboardStats from '../components/dashboard/DashboardStats';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
 import { Donor, calculateNextDonationDate } from '../types/donor';
 import { isDonorAvailable, exportDonorsToCSV } from '../utils/donorUtils';
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { useCustomAuth } from '../hooks/useCustomAuth';
 import { useDonors } from '../hooks/useDonors';
 import AdminManagement from '../components/AdminManagement';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +33,7 @@ const Index = () => {
     }
   });
   
-  const { user, userRole, isAdmin, isMainAdmin } = useSupabaseAuth();
+  const { user, userRole, isAdmin, isMainAdmin } = useCustomAuth();
   const { donors, loading, addDonor, updateDonor, removeDonor, refreshDonors } = useDonors();
   const { toast } = useToast();
 
