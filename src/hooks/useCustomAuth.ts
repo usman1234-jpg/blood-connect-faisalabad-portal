@@ -23,6 +23,7 @@ export const useCustomAuth = () => {
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -42,6 +43,11 @@ export const useCustomAuth = () => {
         
         if (session?.user) {
           await loadUserProfile(session.user.id);
+          
+          // If this is a new admin signup, create their profile
+          if (event === 'SIGNED_IN' && session.user.email === 'admin@bloodconnect.com') {
+            await ensureAdminProfile(session.user);
+          }
         } else {
           setUserRole('user');
           setLoading(false);
@@ -51,6 +57,43 @@ export const useCustomAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const ensureAdminProfile = async (user: User) => {
+    try {
+      console.log('Ensuring admin profile exists for user:', user.id);
+      
+      // Check if profile already exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (checkError && checkError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        console.log('Creating admin profile...');
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: user.id,
+            username: 'admin',
+            role: 'main-admin',
+            full_name: 'Main Administrator',
+            date_added: new Date().toISOString().split('T')[0]
+          }]);
+
+        if (insertError) {
+          console.error('Error creating admin profile:', insertError);
+        } else {
+          console.log('Admin profile created successfully');
+        }
+      } else if (existingProfile) {
+        console.log('Admin profile already exists:', existingProfile);
+      }
+    } catch (error) {
+      console.error('Error in ensureAdminProfile:', error);
+    }
+  };
 
   const loadUserProfile = async (userId: string) => {
     try {

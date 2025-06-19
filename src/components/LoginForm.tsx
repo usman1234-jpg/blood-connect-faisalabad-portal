@@ -19,52 +19,65 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      // First, get the user's email from the profiles table using their user ID
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('username', userId)
-        .single();
-
-      if (profileError || !profile) {
-        toast({
-          title: "Login Failed",
-          description: "Invalid user ID or password",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // For now, we'll create a simple authentication check
-      // Since we can't validate passwords directly with Supabase auth using custom user IDs,
-      // we'll implement a basic check for the admin user
+      // Check if this is the admin user
       if (userId === 'admin' && password === 'BloodConnect2024!') {
-        // Create a session by signing in with a dummy email for the admin
-        const { error } = await supabase.auth.signInWithPassword({
+        // Sign up the admin user if they don't exist, then sign in
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: 'admin@bloodconnect.com',
+          password: 'BloodConnect2024!',
+          options: {
+            data: {
+              username: 'admin',
+              role: 'main-admin',
+              full_name: 'Main Administrator'
+            }
+          }
+        });
+
+        if (signUpError && signUpError.message !== 'User already registered') {
+          console.error('Sign up error:', signUpError);
+        }
+
+        // Now try to sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: 'admin@bloodconnect.com',
           password: 'BloodConnect2024!'
         });
 
-        if (error) {
+        if (signInError) {
           toast({
             title: "Login Failed",
-            description: error.message,
+            description: signInError.message,
             variant: "destructive"
           });
         } else {
           toast({
             title: "Success",
-            description: "Logged in successfully!",
+            description: "Logged in successfully as admin!",
             variant: "default"
           });
         }
       } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid user ID or password",
-          variant: "destructive"
-        });
+        // For other users, check if they exist in profiles table
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', userId)
+          .single();
+
+        if (profileError || !profile) {
+          toast({
+            title: "Login Failed",
+            description: "Invalid user ID or password",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Only admin login is currently supported. Please contact administrator.",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
