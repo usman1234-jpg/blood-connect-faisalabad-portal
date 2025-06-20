@@ -18,78 +18,30 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      // Check if this is the admin user
       if (userId === 'admin' && password === 'BloodConnect2024!') {
-        console.log('Attempting admin login...');
-        
-        // Try to sign in directly first
+        // Admin login
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: 'admin@bloodconnect.com',
           password: 'BloodConnect2024!'
         });
 
         if (signInError) {
-          console.error('Sign in error:', signInError);
-          
-          // If sign in fails due to user not existing, try to create the user first
-          if (signInError.message.includes('Invalid login credentials')) {
-            console.log('Admin user not found, creating...');
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: 'admin@bloodconnect.com',
-              password: 'BloodConnect2024!',
-              options: {
-                data: {
-                  username: 'admin',
-                  role: 'main-admin',
-                  full_name: 'Main Administrator'
-                }
-              }
-            });
-
-            if (signUpError && !signUpError.message.includes('User already registered')) {
-              console.error('Sign up error:', signUpError);
-              toast({
-                title: "Login Failed",
-                description: signUpError.message,
-                variant: "destructive"
-              });
-              return;
-            }
-
-            // Try to sign in again after signup
-            const { data: retrySignInData, error: retrySignInError } = await supabase.auth.signInWithPassword({
-              email: 'admin@bloodconnect.com',
-              password: 'BloodConnect2024!'
-            });
-
-            if (retrySignInError) {
-              console.error('Retry sign in error:', retrySignInError);
-              toast({
-                title: "Login Failed",
-                description: retrySignInError.message,
-                variant: "destructive"
-              });
-              return;
-            }
-          } else {
-            toast({
-              title: "Login Failed",
-              description: signInError.message,
-              variant: "destructive"
-            });
-            return;
-          }
+          console.error('Admin login error:', signInError);
+          toast({
+            title: "Login Failed",
+            description: signInError.message,
+            variant: "destructive"
+          });
+          return;
         }
 
-        console.log('Admin login successful');
         toast({
           title: "Success",
           description: "Logged in successfully as admin!",
           variant: "default"
         });
       } else {
-        // For other users, check if they exist in profiles table and validate password
-        console.log('Checking for non-admin user:', userId);
+        // For other users, find their profile and sign them in with generated email
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -106,30 +58,25 @@ const LoginForm = () => {
           return;
         }
 
-        // For now, we'll create a simple session simulation
-        // In a real implementation, you'd want proper password hashing and validation
-        // Since this is a closed system, we'll use a simplified approach
+        // Generate the same email format used when creating the user
+        const generatedEmail = `${profile.username.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
         
-        // Store user session data in localStorage for this closed system
-        const sessionData = {
-          user: {
-            id: profile.id,
-            username: profile.username,
-            role: profile.role,
-            full_name: profile.full_name,
-            university: profile.university
-          },
-          session: {
-            access_token: 'internal-session-' + profile.id,
-            user: profile
-          }
-        };
-        
-        localStorage.setItem('bloodconnect_session', JSON.stringify(sessionData));
-        
-        // Trigger a page reload to initialize the session
-        window.location.reload();
-        
+        // Try to sign in with the generated email and the password they provided
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: generatedEmail,
+          password: password
+        });
+
+        if (signInError) {
+          console.error('User login error:', signInError);
+          toast({
+            title: "Login Failed",
+            description: "Invalid user ID or password",
+            variant: "destructive"
+          });
+          return;
+        }
+
         toast({
           title: "Success",
           description: `Logged in successfully as ${profile.username}!`,

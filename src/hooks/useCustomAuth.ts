@@ -14,20 +14,6 @@ interface Profile {
   added_by?: string;
 }
 
-interface LocalSession {
-  user: {
-    id: string;
-    username: string;
-    role: string;
-    full_name?: string;
-    university?: string;
-  };
-  session: {
-    access_token: string;
-    user: Profile;
-  };
-}
-
 export const useCustomAuth = () => {
   const [user, setUser] = useState<User | any>(null);
   const [session, setSession] = useState<Session | any>(null);
@@ -35,23 +21,7 @@ export const useCustomAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for local session first (for non-admin users)
-    const localSession = localStorage.getItem('bloodconnect_session');
-    if (localSession) {
-      try {
-        const parsedSession: LocalSession = JSON.parse(localSession);
-        setUser(parsedSession.user);
-        setSession(parsedSession.session);
-        setUserRole(parsedSession.user.role);
-        setLoading(false);
-        return;
-      } catch (error) {
-        console.error('Error parsing local session:', error);
-        localStorage.removeItem('bloodconnect_session');
-      }
-    }
-
-    // Check for Supabase session (for admin users)
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Initial session:', session);
       setSession(session);
@@ -64,26 +34,15 @@ export const useCustomAuth = () => {
       }
     });
 
-    // Listen for auth changes (only for Supabase auth)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session);
-        
-        // Clear local session if Supabase session changes
-        if (localStorage.getItem('bloodconnect_session')) {
-          localStorage.removeItem('bloodconnect_session');
-        }
-        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           await loadUserProfile(session.user.id);
-          
-          // If this is a new admin signup, create their profile
-          if (event === 'SIGNED_IN' && session.user.email === 'admin@bloodconnect.com') {
-            await ensureAdminProfile(session.user);
-          }
         } else {
           setUserRole('user');
           setLoading(false);
@@ -93,43 +52,6 @@ export const useCustomAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const ensureAdminProfile = async (user: User) => {
-    try {
-      console.log('Ensuring admin profile exists for user:', user.id);
-      
-      // Check if profile already exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (checkError && checkError.code === 'PGRST116') {
-        // Profile doesn't exist, create it
-        console.log('Creating admin profile...');
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: user.id,
-            username: 'admin',
-            role: 'main-admin',
-            full_name: 'Main Administrator',
-            date_added: new Date().toISOString().split('T')[0]
-          }]);
-
-        if (insertError) {
-          console.error('Error creating admin profile:', insertError);
-        } else {
-          console.log('Admin profile created successfully');
-        }
-      } else if (existingProfile) {
-        console.log('Admin profile already exists:', existingProfile);
-      }
-    } catch (error) {
-      console.error('Error in ensureAdminProfile:', error);
-    }
-  };
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -147,7 +69,6 @@ export const useCustomAuth = () => {
       if (data) {
         console.log('Profile loaded:', data);
         setUserRole(data.role);
-        // Update user with profile data
         const updatedUser = {
           ...user,
           username: data.username,
@@ -167,17 +88,11 @@ export const useCustomAuth = () => {
   };
 
   const signOut = async () => {
-    // Clear local session
-    localStorage.removeItem('bloodconnect_session');
-    
-    // Sign out from Supabase if there's a session
     await supabase.auth.signOut();
-    
-    // Reload page to reset state
     window.location.reload();
   };
 
-  const isAuthenticated = !!session || !!localStorage.getItem('bloodconnect_session');
+  const isAuthenticated = !!session;
   const isAdmin = userRole === 'admin' || userRole === 'main-admin';
   const isMainAdmin = userRole === 'main-admin';
 

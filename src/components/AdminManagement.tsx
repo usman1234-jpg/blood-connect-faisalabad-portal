@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+import { useCustomAuth } from '../hooks/useCustomAuth';
 import { UserPlus, Users, Settings, Trash2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,7 +25,7 @@ interface Profile {
 
 const AdminManagement = () => {
   const { toast } = useToast();
-  const { user } = useSupabaseAuth();
+  const { user } = useCustomAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [universities, setUniversities] = useState<string[]>([]);
   const [showAddUser, setShowAddUser] = useState(false);
@@ -116,47 +116,57 @@ const AdminManagement = () => {
     }
 
     try {
-      // Generate a unique email for internal use
       const generatedEmail = `${newUserData.username.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
       
-      // Create user directly in profiles table first
-      const newUserId = crypto.randomUUID();
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([{
-          id: newUserId,
+      // Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: generatedEmail,
+        password: newUserData.password,
+        email_confirm: true,
+        user_metadata: {
           username: newUserData.username,
           full_name: newUserData.fullName,
-          role: newUserData.role,
-          university: newUserData.university || null,
-          note: newUserData.note || null,
-          added_by: user?.id || null,
-          date_added: new Date().toISOString().split('T')[0]
-        }]);
-
-      if (profileError) throw profileError;
-
-      // Create a simple auth record for login (this will work with the existing login system)
-      // The actual authentication will be handled by checking the profiles table
-      
-      await loadUsers();
-
-      toast({
-        title: 'Success',
-        description: `User "${newUserData.username}" added successfully!`,
-        variant: 'default'
+          role: newUserData.role
+        }
       });
 
-      setNewUserData({
-        username: '',
-        role: 'user',
-        university: '',
-        fullName: '',
-        note: '',
-        password: ''
-      });
-      setShowAddUser(false);
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Create profile in the profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            username: newUserData.username,
+            full_name: newUserData.fullName,
+            role: newUserData.role,
+            university: newUserData.university || null,
+            note: newUserData.note || null,
+            added_by: user?.id || null,
+            date_added: new Date().toISOString().split('T')[0]
+          }]);
+
+        if (profileError) throw profileError;
+
+        await loadUsers();
+
+        toast({
+          title: 'Success',
+          description: `User "${newUserData.username}" added successfully!`,
+          variant: 'default'
+        });
+
+        setNewUserData({
+          username: '',
+          role: 'user',
+          university: '',
+          fullName: '',
+          note: '',
+          password: ''
+        });
+        setShowAddUser(false);
+      }
     } catch (error: any) {
       console.error('Error adding user:', error);
       toast({
@@ -232,15 +242,21 @@ const AdminManagement = () => {
       return;
     }
 
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Are you sure you want to delete this user? This will remove them from both the system and authentication.')) {
       try {
-        // Delete from profiles table
-        const { error } = await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', userId);
+        // Delete from Supabase Auth (this will cascade to profiles due to foreign key)
+        const { error: authError } = await supabase.auth.admin.deleteUser(userId);
         
-        if (error) throw error;
+        if (authError) {
+          console.error('Auth deletion error:', authError);
+          // If auth deletion fails, try to delete from profiles table directly
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+          
+          if (profileError) throw profileError;
+        }
 
         await loadUsers();
         
@@ -343,7 +359,7 @@ const AdminManagement = () => {
         <Card>
           <CardHeader>
             <CardTitle>Add New User</CardTitle>
-            <CardDescription>Create a new user or admin account for internal use</CardDescription>
+            <CardDescription>Create a new user or admin account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -565,25 +581,23 @@ const AdminManagement = () => {
                         </>
                       ) : (
                         <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditUser(userData.id)}
+                            className="h-8"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
                           {userData.role !== 'main-admin' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditUser(userData.id)}
-                                className="h-8"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDeleteUser(userData.id)}
-                                className="h-8 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteUser(userData.id)}
+                              className="h-8 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           )}
                         </>
                       )}
