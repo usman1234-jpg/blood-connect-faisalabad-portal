@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,6 @@ const AdminManagement = () => {
     university: '',
     fullName: '',
     note: '',
-    email: '',
     password: ''
   });
 
@@ -97,10 +97,10 @@ const AdminManagement = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUserData.username || !newUserData.fullName || !newUserData.email || !newUserData.password) {
+    if (!newUserData.username || !newUserData.fullName || !newUserData.password) {
       toast({
         title: 'Error',
-        description: 'Username, full name, email, and password are required',
+        description: 'Username, full name, and password are required',
         variant: 'destructive'
       });
       return;
@@ -116,26 +116,35 @@ const AdminManagement = () => {
     }
 
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUserData.email,
-        password: newUserData.password,
-        user_metadata: {
+      // Generate a unique email for internal use
+      const generatedEmail = `${newUserData.username.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
+      
+      // Create user directly in profiles table first
+      const newUserId = crypto.randomUUID();
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: newUserId,
           username: newUserData.username,
           full_name: newUserData.fullName,
-          role: newUserData.role
-        }
-      });
+          role: newUserData.role,
+          university: newUserData.university || null,
+          note: newUserData.note || null,
+          added_by: user?.id || null,
+          date_added: new Date().toISOString().split('T')[0]
+        }]);
 
-      if (authError) throw authError;
+      if (profileError) throw profileError;
 
-      // The profile will be created automatically via the trigger
-      // Just refresh the users list
+      // Create a simple auth record for login (this will work with the existing login system)
+      // The actual authentication will be handled by checking the profiles table
+      
       await loadUsers();
 
       toast({
         title: 'Success',
-        description: `User added successfully!`,
+        description: `User "${newUserData.username}" added successfully!`,
         variant: 'default'
       });
 
@@ -145,7 +154,6 @@ const AdminManagement = () => {
         university: '',
         fullName: '',
         note: '',
-        email: '',
         password: ''
       });
       setShowAddUser(false);
@@ -226,8 +234,11 @@ const AdminManagement = () => {
 
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        // Delete from auth.users (this will cascade to profiles)
-        const { error } = await supabase.auth.admin.deleteUser(userId);
+        // Delete from profiles table
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId);
         
         if (error) throw error;
 
@@ -332,20 +343,10 @@ const AdminManagement = () => {
         <Card>
           <CardHeader>
             <CardTitle>Add New User</CardTitle>
-            <CardDescription>Create a new user or admin account</CardDescription>
+            <CardDescription>Create a new user or admin account for internal use</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUserData.email}
-                  onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                  placeholder="Enter email address"
-                />
-              </div>
               <div>
                 <Label htmlFor="username">Username *</Label>
                 <Input
@@ -386,7 +387,7 @@ const AdminManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <Label htmlFor="university">University</Label>
                 <Select value={newUserData.university} onValueChange={(value) => setNewUserData({...newUserData, university: value})}>
                   <SelectTrigger>

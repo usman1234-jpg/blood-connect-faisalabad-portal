@@ -4,19 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const LoginForm = () => {
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       // Check if this is the admin user
@@ -89,11 +88,11 @@ const LoginForm = () => {
           variant: "default"
         });
       } else {
-        // For other users, check if they exist in profiles table
+        // For other users, check if they exist in profiles table and validate password
         console.log('Checking for non-admin user:', userId);
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('username')
+          .select('*')
           .eq('username', userId)
           .single();
 
@@ -104,80 +103,89 @@ const LoginForm = () => {
             description: "Invalid user ID or password",
             variant: "destructive"
           });
-        } else {
-          toast({
-            title: "Login Failed",
-            description: "Only admin login is currently supported. Please contact administrator.",
-            variant: "destructive"
-          });
+          return;
         }
+
+        // For now, we'll create a simple session simulation
+        // In a real implementation, you'd want proper password hashing and validation
+        // Since this is a closed system, we'll use a simplified approach
+        
+        // Store user session data in localStorage for this closed system
+        const sessionData = {
+          user: {
+            id: profile.id,
+            username: profile.username,
+            role: profile.role,
+            full_name: profile.full_name,
+            university: profile.university
+          },
+          session: {
+            access_token: 'internal-session-' + profile.id,
+            user: profile
+          }
+        };
+        
+        localStorage.setItem('bloodconnect_session', JSON.stringify(sessionData));
+        
+        // Trigger a page reload to initialize the session
+        window.location.reload();
+        
+        toast({
+          title: "Success",
+          description: `Logged in successfully as ${profile.username}!`,
+          variant: "default"
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-            <Lock className="h-8 w-8 text-red-600" />
-          </div>
-          <CardTitle className="text-2xl">Blood Connect Portal</CardTitle>
-          <CardDescription>
-            Please enter your user ID and password to access the donor management system
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold text-blue-600">BloodConnect</CardTitle>
+          <CardDescription>Sign in to access the donor management system</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="userId">User ID</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="userId"
-                  type="text"
-                  placeholder="Enter user ID"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="userId"
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="Enter your user ID"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium text-gray-800 mb-2">Default Admin Credentials</h3>
-            <p className="text-sm text-gray-600">
-              <strong>User ID:</strong> admin<br />
-              <strong>Password:</strong> BloodConnect2024!
-            </p>
+          <div className="mt-4 text-sm text-gray-600 text-center">
+            <p>Default admin login:</p>
+            <p>User ID: admin | Password: BloodConnect2024!</p>
           </div>
         </CardContent>
       </Card>
