@@ -15,42 +15,79 @@ interface Profile {
 }
 
 export const useCustomAuth = () => {
-  const [user, setUser] = useState<User | any>(null);
-  const [session, setSession] = useState<Session | any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setLoading(false);
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        console.log('Initial session:', initialSession);
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        
+        if (initialSession?.user) {
+          await loadUserProfile(initialSession.user.id);
+        }
+        
+        if (mounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in initializeAuth:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session);
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
+        if (session?.user && event !== 'TOKEN_REFRESHED') {
+          // Only load profile on actual sign in, not token refresh
+          setTimeout(() => {
+            if (mounted) {
+              loadUserProfile(session.user.id);
+            }
+          }, 0);
+        } else if (!session) {
           setUserRole('user');
+        }
+        
+        if (mounted && event !== 'TOKEN_REFRESHED') {
           setLoading(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Initialize auth
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (userId: string) => {
@@ -60,36 +97,31 @@ export const useCustomAuth = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error loading user profile:', error);
+        return;
       }
 
       if (data) {
         console.log('Profile loaded:', data);
         setUserRole(data.role);
-        const updatedUser = {
-          ...user,
-          username: data.username,
-          university: data.university,
-          full_name: data.full_name,
-          note: data.note,
-          date_added: data.date_added,
-          added_by: data.added_by
-        } as any;
-        setUser(updatedUser);
+      } else {
+        console.log('No profile found for user');
+        setUserRole('user');
       }
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const isAuthenticated = !!session;

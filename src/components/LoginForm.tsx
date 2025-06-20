@@ -19,7 +19,7 @@ const LoginForm = () => {
 
     try {
       if (userId === 'admin' && password === 'BloodConnect2024!') {
-        // Admin login
+        // Admin login with Supabase Auth
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: 'admin@bloodconnect.com',
           password: 'BloodConnect2024!'
@@ -41,7 +41,7 @@ const LoginForm = () => {
           variant: "default"
         });
       } else {
-        // For other users, find their profile and sign them in with generated email
+        // For other users, find their profile and use Supabase Auth
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -130,10 +130,6 @@ const LoginForm = () => {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-4 text-sm text-gray-600 text-center">
-            <p>Default admin login:</p>
-            <p>User ID: admin | Password: BloodConnect2024!</p>
-          </div>
         </CardContent>
       </Card>
     </div>
