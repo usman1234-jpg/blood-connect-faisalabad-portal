@@ -21,44 +21,76 @@ const LoginForm = () => {
     try {
       // Check if this is the admin user
       if (userId === 'admin' && password === 'BloodConnect2024!') {
-        // Sign up the admin user if they don't exist, then sign in
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: 'admin@bloodconnect.com',
-          password: 'BloodConnect2024!',
-          options: {
-            data: {
-              username: 'admin',
-              role: 'main-admin',
-              full_name: 'Main Administrator'
-            }
-          }
-        });
-
-        if (signUpError && signUpError.message !== 'User already registered') {
-          console.error('Sign up error:', signUpError);
-        }
-
-        // Now try to sign in
+        console.log('Attempting admin login...');
+        
+        // Try to sign in directly first
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: 'admin@bloodconnect.com',
           password: 'BloodConnect2024!'
         });
 
         if (signInError) {
-          toast({
-            title: "Login Failed",
-            description: signInError.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: "Logged in successfully as admin!",
-            variant: "default"
-          });
+          console.error('Sign in error:', signInError);
+          
+          // If sign in fails due to user not existing, try to create the user first
+          if (signInError.message.includes('Invalid login credentials')) {
+            console.log('Admin user not found, creating...');
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: 'admin@bloodconnect.com',
+              password: 'BloodConnect2024!',
+              options: {
+                data: {
+                  username: 'admin',
+                  role: 'main-admin',
+                  full_name: 'Main Administrator'
+                }
+              }
+            });
+
+            if (signUpError && !signUpError.message.includes('User already registered')) {
+              console.error('Sign up error:', signUpError);
+              toast({
+                title: "Login Failed",
+                description: signUpError.message,
+                variant: "destructive"
+              });
+              return;
+            }
+
+            // Try to sign in again after signup
+            const { data: retrySignInData, error: retrySignInError } = await supabase.auth.signInWithPassword({
+              email: 'admin@bloodconnect.com',
+              password: 'BloodConnect2024!'
+            });
+
+            if (retrySignInError) {
+              console.error('Retry sign in error:', retrySignInError);
+              toast({
+                title: "Login Failed",
+                description: retrySignInError.message,
+                variant: "destructive"
+              });
+              return;
+            }
+          } else {
+            toast({
+              title: "Login Failed",
+              description: signInError.message,
+              variant: "destructive"
+            });
+            return;
+          }
         }
+
+        console.log('Admin login successful');
+        toast({
+          title: "Success",
+          description: "Logged in successfully as admin!",
+          variant: "default"
+        });
       } else {
         // For other users, check if they exist in profiles table
+        console.log('Checking for non-admin user:', userId);
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('username')
@@ -66,6 +98,7 @@ const LoginForm = () => {
           .single();
 
         if (profileError || !profile) {
+          console.error('Profile not found:', profileError);
           toast({
             title: "Login Failed",
             description: "Invalid user ID or password",
