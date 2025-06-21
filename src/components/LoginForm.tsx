@@ -18,35 +18,37 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting login for:', userId);
+
       if (userId === 'admin' && password === 'BloodConnect2024!') {
-        // Admin login with Supabase Auth
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        // Admin login
+        const { error } = await supabase.auth.signInWithPassword({
           email: 'admin@bloodconnect.com',
           password: 'BloodConnect2024!'
         });
 
-        if (signInError) {
-          console.error('Admin login error:', signInError);
+        if (error) {
+          console.error('Admin login error:', error);
           toast({
             title: "Login Failed",
-            description: signInError.message,
+            description: error.message,
             variant: "destructive"
           });
           return;
         }
 
+        console.log('Admin login successful');
         toast({
           title: "Success",
           description: "Logged in successfully as admin!",
-          variant: "default"
         });
       } else {
-        // For other users, find their profile and use Supabase Auth
+        // Regular user login
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('username', userId)
-          .single();
+          .maybeSingle();
 
         if (profileError || !profile) {
           console.error('Profile not found:', profileError);
@@ -58,11 +60,10 @@ const LoginForm = () => {
           return;
         }
 
-        // Generate the same email format used when creating the user
+        // Generate email and try to sign in
         const generatedEmail = `${profile.username.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
         
-        // Try to sign in with the generated email and the password they provided
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email: generatedEmail,
           password: password
         });
@@ -77,10 +78,10 @@ const LoginForm = () => {
           return;
         }
 
+        console.log('User login successful');
         toast({
           title: "Success",
           description: `Logged in successfully as ${profile.username}!`,
-          variant: "default"
         });
       }
     } catch (error: any) {
