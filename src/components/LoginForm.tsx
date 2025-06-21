@@ -18,77 +18,63 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      console.log('Attempting login for:', userId);
+      console.log('Login attempt for:', userId);
 
-      if (userId === 'admin' && password === 'BloodConnect2024!') {
+      let email: string;
+      let loginPassword: string;
+
+      if (userId === 'admin') {
         // Admin login
-        const { error } = await supabase.auth.signInWithPassword({
-          email: 'admin@bloodconnect.com',
-          password: 'BloodConnect2024!'
-        });
-
-        if (error) {
-          console.error('Admin login error:', error);
-          toast({
-            title: "Login Failed",
-            description: error.message,
-            variant: "destructive"
-          });
-          return;
-        }
-
-        console.log('Admin login successful');
-        toast({
-          title: "Success",
-          description: "Logged in successfully as admin!",
-        });
+        email = 'admin@bloodconnect.com';
+        loginPassword = 'BloodConnect2024!';
       } else {
-        // Regular user login
+        // Regular user login - generate email from username
+        const generatedEmail = `${userId.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
+        email = generatedEmail;
+        loginPassword = password;
+
+        // Check if user exists in profiles
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('username')
           .eq('username', userId)
-          .maybeSingle();
+          .single();
 
         if (profileError || !profile) {
-          console.error('Profile not found:', profileError);
           toast({
             title: "Login Failed",
             description: "Invalid user ID or password",
             variant: "destructive"
           });
+          setLoading(false);
           return;
         }
+      }
 
-        // Generate email and try to sign in
-        const generatedEmail = `${profile.username.toLowerCase().replace(/\s+/g, '')}@bloodconnect.internal`;
-        
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: generatedEmail,
-          password: password
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: loginPassword
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials",
+          variant: "destructive"
         });
-
-        if (signInError) {
-          console.error('User login error:', signInError);
-          toast({
-            title: "Login Failed",
-            description: "Invalid user ID or password",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        console.log('User login successful');
+      } else {
+        console.log('Login successful');
         toast({
           title: "Success",
-          description: `Logged in successfully as ${profile.username}!`,
+          description: "Logged in successfully!",
         });
       }
     } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: "Login Failed",
-        description: error.message || "An unexpected error occurred",
+        description: "An error occurred during login",
         variant: "destructive"
       });
     } finally {

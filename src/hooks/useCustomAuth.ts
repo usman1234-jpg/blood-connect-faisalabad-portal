@@ -21,122 +21,86 @@ export const useCustomAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const initAuth = async () => {
+    console.log('Auth hook initializing...');
+    
+    // Get initial session
+    const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('Initial session:', currentSession?.user?.id || 'none');
         
-        // Get current session
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-
-        if (error) {
-          console.error('Session error:', error);
-          setLoading(false);
-          return;
-        }
-
-        console.log('Current session:', currentSession);
-        
-        if (currentSession) {
+        if (currentSession?.user) {
           setSession(currentSession);
           setUser(currentSession.user);
           
-          // Load user profile
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentSession.user.id)
-              .maybeSingle();
-
-            if (profileError) {
-              console.error('Profile loading error:', profileError);
-            }
-
-            if (profile && isMounted) {
-              console.log('Profile loaded:', profile);
-              setUserRole(profile.role || 'user');
-            }
-          } catch (profileErr) {
-            console.error('Profile fetch error:', profileErr);
-          }
+          // Load profile for role
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', currentSession.user.id)
+            .single();
+          
+          setUserRole(profile?.role || 'user');
         }
-
-        if (isMounted) {
-          setLoading(false);
-          console.log('Auth initialization complete');
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-        if (isMounted) {
-          setLoading(false);
-        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setLoading(false);
       }
     };
 
-    // Set up auth state listener
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        if (!isMounted) return;
-        
-        console.log('Auth state change:', event, newSession?.user?.id);
+        console.log('Auth state changed:', event, newSession?.user?.id || 'none');
         
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
-        if (newSession?.user && event === 'SIGNED_IN') {
-          // Load profile only on sign in
+        if (newSession?.user) {
+          // Load profile for role
           try {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('*')
+              .select('role')
               .eq('id', newSession.user.id)
-              .maybeSingle();
-
-            if (profile && isMounted) {
-              setUserRole(profile.role || 'user');
-            }
-          } catch (err) {
-            console.error('Profile load error on sign in:', err);
+              .single();
+            
+            setUserRole(profile?.role || 'user');
+          } catch (error) {
+            console.error('Profile load error:', error);
+            setUserRole('user');
           }
-        } else if (!newSession) {
+        } else {
           setUserRole('user');
         }
         
-        // Set loading to false after auth state change
-        if (isMounted && event !== 'TOKEN_REFRESHED') {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     );
 
-    // Initialize
-    initAuth();
+    initializeAuth();
 
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const signOut = async () => {
     try {
-      setLoading(true);
       await supabase.auth.signOut();
       setUserRole('user');
     } catch (error) {
       console.error('Sign out error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const isAuthenticated = !!session;
   const isAdmin = userRole === 'admin' || userRole === 'main-admin';
   const isMainAdmin = userRole === 'main-admin';
+
+  console.log('Auth state:', { isAuthenticated, loading, userRole });
 
   return {
     user,
