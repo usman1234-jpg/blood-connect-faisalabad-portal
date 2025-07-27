@@ -1,78 +1,60 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
   id: string;
   username: string;
-  email: string;
-  role: string;
+  role: 'user' | 'admin' | 'main_admin';
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  userRole: 'user' | 'admin' | 'main_admin';
+  loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  loading: boolean;
-  userRole: string;
-  isAdmin: () => boolean;
-  canEdit: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  user: null,
+  userRole: 'user',
+  loading: true,
+  login: async () => false,
+  logout: () => {}
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = () => user?.role === 'admin';
-  const canEdit = () => user?.role === 'admin';
-
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch('/api/auth/verify', {
-          headers: {
-            'Authorization': `Bearer ${token}`
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const response = await fetch('/api/auth/verify', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            setIsAuthenticated(true);
+          } else {
+            localStorage.removeItem('authToken');
           }
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('token');
-          setUser(null);
-          setIsAuthenticated(false);
+        } catch (error) {
+          console.error('Auth verification failed:', error);
+          localStorage.removeItem('authToken');
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-        setUser(null);
-        setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     checkAuth();
@@ -82,16 +64,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
       });
 
       if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
-        setUser(data.user);
+        const { token, user: userData } = await response.json();
+        localStorage.setItem('authToken', token);
+        setUser(userData);
         setIsAuthenticated(true);
         return true;
       }
@@ -103,24 +83,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     setUser(null);
     setIsAuthenticated(false);
   };
 
-  const value: AuthContextType = {
-    isAuthenticated,
-    user,
-    login,
-    logout,
-    loading,
-    userRole: user?.role || 'user',
-    isAdmin,
-    canEdit
-  };
+  const userRole = user?.role || 'user';
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      user,
+      userRole,
+      loading,
+      login,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );

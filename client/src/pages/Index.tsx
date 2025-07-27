@@ -7,13 +7,12 @@ import DonorList from '../components/DonorList';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import DashboardStats from '../components/dashboard/DashboardStats';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
-import { Donor, calculateNextDonationDate } from '../types/donor';
+import { Donor } from '../types/donor';
 import { isDonorAvailable, exportDonorsToCSV } from '../utils/donorUtils';
-import { useCustomAuth } from '../hooks/useCustomAuth';
+import { useAuth } from '../contexts/AuthContext';
 import { useDonors } from '../hooks/useDonors';
 import AdminManagement from '../components/AdminManagement';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Donor[]>([]);
@@ -33,36 +32,28 @@ const Index = () => {
     }
   });
   
-  const { user, userRole, isAdmin, isMainAdmin } = useCustomAuth();
+  const { user, userRole } = useAuth();
+  const isAdmin = userRole === 'admin' || userRole === 'main_admin';
+  const isMainAdmin = userRole === 'main_admin';
   const { donors, loading, addDonor, updateDonor, removeDonor, refreshDonors } = useDonors();
   const { toast } = useToast();
 
-  // Load universities from Supabase
+  // Load universities from local data
   useEffect(() => {
-    const loadUniversities = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('universities')
-          .select('name')
-          .eq('is_active', true)
-          .order('name');
-
-        if (error) throw error;
-        
-        const universityNames = data?.map(u => u.name) || [];
-        setUniversities(universityNames);
-      } catch (error) {
-        console.error('Error loading universities:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load universities',
-          variant: 'destructive'
-        });
-      }
-    };
-
-    loadUniversities();
-  }, [toast]);
+    const defaultUniversities = [
+      'University of Karachi',
+      'NED University of Engineering & Technology',
+      'Sindh University',
+      'Dow University of Health Sciences',
+      'Aga Khan University',
+      'Institute of Business Administration (IBA)',
+      'Hamdard University',
+      'Sir Syed University of Engineering & Technology',
+      'Jinnah University for Women',
+      'Federal Urdu University'
+    ];
+    setUniversities(defaultUniversities);
+  }, []);
 
   // Handle tab changes
   const handleTabChange = (value: string) => {
@@ -138,28 +129,12 @@ const Index = () => {
   };
 
   const handleAddUniversity = async (universityName: string) => {
-    try {
-      const { error } = await supabase
-        .from('universities')
-        .insert([{ 
-          name: universityName,
-          added_by: user?.id 
-        }]);
-
-      if (error) throw error;
-
+    if (!universities.includes(universityName)) {
       setUniversities([...universities, universityName]);
       toast({
         title: 'Success',
         description: 'University added successfully!',
         variant: 'default'
-      });
-    } catch (error) {
-      console.error('Error adding university:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add university',
-        variant: 'destructive'
       });
     }
   };

@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
@@ -10,6 +11,7 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,9 +19,13 @@ const LoginForm = () => {
     setError('');
 
     const success = await login(username, password);
-    if (!success) {
-      setError('Invalid credentials');
+
+    if (success) {
+      navigate('/');
+    } else {
+      setError('Invalid username or password');
     }
+
     setLoading(false);
   };
 
