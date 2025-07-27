@@ -1,3 +1,3 @@
 
-// Supabase types removed - using local types instead
+// Supabase types removed - using local database types
 export type Database = {};

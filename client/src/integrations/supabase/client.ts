@@ -1,3 +1,3 @@
 
-// Supabase integration removed - using SQLite instead
+// Supabase integration removed - using local SQLite database
 export const supabase = null;

@@ -1,34 +1,27 @@
 
-import React from 'react';
-import { useCustomAuth } from '../hooks/useCustomAuth';
+import { ReactNode } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import LoginForm from './LoginForm';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useCustomAuth();
-
-  console.log('ProtectedRoute render:', { isAuthenticated, loading });
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <div className="text-xl text-gray-700">Loading...</div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    console.log('Not authenticated, showing login');
     return <LoginForm />;
   }
 
-  console.log('Authenticated, showing app');
   return <>{children}</>;
 };
 

@@ -1,3 +1,4 @@
+
 // Supabase auth removed - using custom auth instead
 export const useSupabaseAuth = () => ({
   user: null,
