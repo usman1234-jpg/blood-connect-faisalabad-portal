@@ -67,25 +67,6 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-import express, { type Express } from "express";
-import path from "path";
-import fs from "fs";
-import { createServer } from "vite";
-
-export function log(message: string) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
-}
-
-export async function setupVite(app: Express, server: any) {
-  const vite = await createServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  });
-  
-  app.use(vite.ssrFixStacktrace);
-  app.use(vite.middlewares);
-}
-
 export function serveStatic(app: Express) {
   const distPath = path.resolve(import.meta.dirname, "public");
 
