@@ -1,137 +1,145 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Donor, calculateNextDonationDate } from '../types/donor';
+import { Donor, InsertDonor } from '../types/donor';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+};
 
 export const useDonors = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadDonors = async () => {
+  const fetchDonors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('donors')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedDonors: Donor[] = (data || []).map(donor => ({
-        id: donor.id,
-        name: donor.name,
-        contact: donor.contact,
-        city: donor.city,
-        university: donor.university,
-        department: donor.department,
-        semester: donor.semester,
-        gender: donor.gender as 'Male' | 'Female',
-        bloodGroup: donor.blood_group as any,
-        lastDonationDate: donor.last_donation_date || '',
-        nextDonationDate: donor.next_donation_date || (donor.last_donation_date ? calculateNextDonationDate(donor.last_donation_date) : ''),
-        isHostelResident: donor.is_hostel_resident,
-        semesterEndDate: donor.semester_end_date || '',
-        dateAdded: donor.date_added
-      }));
-
-      setDonors(formattedDonors);
-    } catch (error) {
-      console.error('Error loading donors:', error);
-      throw error;
+      setLoading(true);
+      const response = await fetch('/api/donors', {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDonors(data);
+        setError(null);
+      } else {
+        setError('Failed to fetch donors');
+      }
+    } catch (err) {
+      setError('Network error');
     } finally {
       setLoading(false);
     }
   };
 
+  const addDonor = async (donorData: InsertDonor): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/donors', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(donorData),
+      });
+
+      if (response.ok) {
+        await fetchDonors();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError('Failed to add donor');
+      return false;
+    }
+  };
+
+  const updateDonor = async (id: number, donorData: Partial<InsertDonor>): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/donors/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(donorData),
+      });
+
+      if (response.ok) {
+        await fetchDonors();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError('Failed to update donor');
+      return false;
+    }
+  };
+
+  const deleteDonor = async (id: number): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/donors/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        await fetchDonors();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError('Failed to delete donor');
+      return false;
+    }
+  };
+
+  const searchDonors = async (query: string): Promise<Donor[]> => {
+    try {
+      const response = await fetch(`/api/donors/search?q=${encodeURIComponent(query)}`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+      return [];
+    } catch (err) {
+      setError('Search failed');
+      return [];
+    }
+  };
+
+  const addMultipleDonors = async (donorsData: InsertDonor[]): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/donors/bulk', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ donors: donorsData }),
+      });
+
+      if (response.ok) {
+        await fetchDonors();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      setError('Failed to add multiple donors');
+      return false;
+    }
+  };
+
   useEffect(() => {
-    loadDonors();
+    fetchDonors();
   }, []);
-
-  const addDonor = async (donorData: Omit<Donor, 'id'>) => {
-    try {
-      const { data, error } = await supabase
-        .from('donors')
-        .insert([{
-          name: donorData.name,
-          contact: donorData.contact,
-          city: donorData.city,
-          university: donorData.university,
-          department: donorData.department,
-          semester: donorData.semester,
-          gender: donorData.gender,
-          blood_group: donorData.bloodGroup,
-          last_donation_date: donorData.lastDonationDate || null,
-          next_donation_date: donorData.nextDonationDate || null,
-          is_hostel_resident: donorData.isHostelResident,
-          semester_end_date: donorData.semesterEndDate || null,
-          date_added: donorData.dateAdded
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      await refreshDonors();
-    } catch (error) {
-      console.error('Error adding donor:', error);
-      throw error;
-    }
-  };
-
-  const updateDonor = async (updatedDonor: Donor) => {
-    try {
-      const { error } = await supabase
-        .from('donors')
-        .update({
-          name: updatedDonor.name,
-          contact: updatedDonor.contact,
-          city: updatedDonor.city,
-          university: updatedDonor.university,
-          department: updatedDonor.department,
-          semester: updatedDonor.semester,
-          gender: updatedDonor.gender,
-          blood_group: updatedDonor.bloodGroup,
-          last_donation_date: updatedDonor.lastDonationDate || null,
-          next_donation_date: updatedDonor.nextDonationDate || null,
-          is_hostel_resident: updatedDonor.isHostelResident,
-          semester_end_date: updatedDonor.semesterEndDate || null
-        })
-        .eq('id', updatedDonor.id);
-
-      if (error) throw error;
-
-      await refreshDonors();
-    } catch (error) {
-      console.error('Error updating donor:', error);
-      throw error;
-    }
-  };
-
-  const removeDonor = async (donorId: string) => {
-    try {
-      const { error } = await supabase
-        .from('donors')
-        .delete()
-        .eq('id', donorId);
-
-      if (error) throw error;
-
-      await refreshDonors();
-    } catch (error) {
-      console.error('Error removing donor:', error);
-      throw error;
-    }
-  };
-
-  const refreshDonors = async () => {
-    await loadDonors();
-  };
 
   return {
     donors,
     loading,
+    error,
+    fetchDonors,
     addDonor,
     updateDonor,
-    removeDonor,
-    refreshDonors
+    deleteDonor,
+    searchDonors,
+    addMultipleDonors,
   };
 };
