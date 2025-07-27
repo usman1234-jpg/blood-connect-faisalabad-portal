@@ -49,6 +49,21 @@ const getUserByUsername = db.prepare(`
   SELECT * FROM users WHERE username = ?
 `);
 
+// Create default admin user if it doesn't exist
+async function createDefaultAdmin() {
+  const bcrypt = require('bcrypt');
+  const adminExists = getUserByUsername.get('admin');
+  
+  if (!adminExists) {
+    const password_hash = await bcrypt.hash('admin123', 10);
+    insertUser.run('admin', 'admin@example.com', password_hash, 'admin');
+    console.log('Admin user created: username=admin, password=admin123');
+  }
+}
+
+// Initialize admin user
+createDefaultAdmin().catch(console.error);
+
 const getUserByEmail = db.prepare(`
   SELECT * FROM users WHERE email = ?
 `);
@@ -104,6 +119,73 @@ const searchDonors = db.prepare(`
 const getDonorsByUniversity = db.prepare(`
   SELECT * FROM donors WHERE university = ? ORDER BY created_at DESC
 `);
+
+const getDonorStats = db.prepare(`
+  SELECT 
+    COUNT(*) as total_donors,
+    SUM(amount) as total_amount,
+    AVG(amount) as avg_amount,
+    COUNT(DISTINCT university) as universities_count
+  FROM donors
+`);
+
+// Export storage functions
+export const storage = {
+  // User methods
+  insertUser: (userData: any) => {
+    const result = insertUser.run(userData.username, userData.email, userData.password_hash, userData.role || 'user');
+    return { id: result.lastInsertRowid, ...userData };
+  },
+  getUserByUsername: (username: string) => getUserByUsername.get(username),
+  getUserByEmail: (email: string) => getUserByEmail.get(email),
+  getUserById: (id: number) => getUserById.get(id),
+  updateUser: (id: number, userData: any) => {
+    updateUser.run(userData.username, userData.email, userData.role, id);
+    return { id, ...userData };
+  },
+  deleteUser: (id: number) => deleteUser.run(id).changes > 0,
+  getAllUsers: () => getAllUsers.all(),
+
+  // Donor methods
+  insertDonor: (donorData: any) => {
+    const result = insertDonor.run(
+      donorData.name,
+      donorData.email || null,
+      donorData.phone || null,
+      donorData.blood_type || null,
+      donorData.university || null,
+      donorData.graduation_year || null,
+      donorData.amount || 0,
+      donorData.donation_date || null,
+      donorData.notes || null
+    );
+    return { id: result.lastInsertRowid, ...donorData };
+  },
+  getDonorById: (id: number) => getDonorById.get(id),
+  getAllDonors: () => getAllDonors.all(),
+  updateDonor: (id: number, donorData: any) => {
+    updateDonor.run(
+      donorData.name,
+      donorData.email || null,
+      donorData.phone || null,
+      donorData.blood_type || null,
+      donorData.university || null,
+      donorData.graduation_year || null,
+      donorData.amount || 0,
+      donorData.donation_date || null,
+      donorData.notes || null,
+      id
+    );
+    return { id, ...donorData };
+  },
+  deleteDonor: (id: number) => deleteDonor.run(id).changes > 0,
+  searchDonors: (searchTerm: string) => {
+    const term = `%${searchTerm}%`;
+    return searchDonors.all(term, term, term);
+  },
+  getDonorsByUniversity: (university: string) => getDonorsByUniversity.all(university),
+  getDonorStats: () => getDonorStats.get()
+};
 
 const getDonorStats = db.prepare(`
   SELECT 

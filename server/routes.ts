@@ -1,7 +1,6 @@
 
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
 import bcrypt from "bcrypt";
 
 interface AuthenticatedRequest extends Request {
@@ -9,6 +8,9 @@ interface AuthenticatedRequest extends Request {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Import storage after it's initialized
+  const { storage } = await import("./storage");
+  
   // Middleware for JSON parsing
   app.use(express.json());
 
@@ -50,6 +52,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
+  });
+
+  // Auth routes (matching frontend expectations)
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      const user = storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const { password_hash: _, ...userResponse } = user;
+      res.json({ 
+        token: `token_${user.id}_${Date.now()}`, // Simple token for demo
+        user: userResponse, 
+        message: "Login successful" 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/verify", (req: Request, res: Response) => {
+    // Simple token verification for demo
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "No valid token" });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (token.startsWith('token_')) {
+      const userId = token.split('_')[1];
+      const user = storage.getUserById(parseInt(userId));
+      if (user) {
+        const { password_hash: _, ...userResponse } = user;
+        return res.json(userResponse);
+      }
+    }
+
+    res.status(401).json({ message: "Invalid token" });
   });
 
   app.post("/api/users/login", async (req: Request, res: Response) => {

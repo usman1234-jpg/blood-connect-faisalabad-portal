@@ -40,7 +40,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (token) {
         try {
           const response = await fetch('/api/auth/verify', {
-            headers: { Authorization: `Bearer ${token}` }
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           });
           if (response.ok) {
             const userData = await response.json();
