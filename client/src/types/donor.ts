@@ -1,28 +1,36 @@
+
 export interface Donor {
-  id: number;
+  id: string;
   name: string;
-  email?: string;
-  phone?: string;
-  blood_type?: string;
-  university?: string;
-  graduation_year?: number;
-  amount: number;
-  donation_date?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
+  contact: string;
+  city: string;
+  university: string;
+  department: string;
+  semester: string;
+  gender: 'Male' | 'Female';
+  bloodGroup: BloodGroup;
+  lastDonationDate: string;
+  nextDonationDate?: string;
+  isHostelResident: boolean;
+  semesterEndDate?: string;
+  dateAdded: string;
+  createdAt: string;
 }
 
 export interface InsertDonor {
   name: string;
-  email?: string;
-  phone?: string;
-  blood_type?: string;
-  university?: string;
-  graduation_year?: number;
-  amount?: number;
-  donation_date?: string;
-  notes?: string;
+  contact: string;
+  city: string;
+  university: string;
+  department: string;
+  semester: string;
+  gender: 'Male' | 'Female';
+  bloodGroup: BloodGroup;
+  lastDonationDate: string;
+  nextDonationDate?: string;
+  isHostelResident: boolean;
+  semesterEndDate?: string;
+  dateAdded: string;
 }
 
 export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
@@ -41,3 +49,33 @@ export const universities = [
   'Jinnah University for Women',
   'Federal Urdu University'
 ];
+
+export const bloodCompatibility: Record<BloodGroup, BloodGroup[]> = {
+  'A+': ['A+', 'A-', 'O+', 'O-'],
+  'A-': ['A-', 'O-'],
+  'B+': ['B+', 'B-', 'O+', 'O-'],
+  'B-': ['B-', 'O-'],
+  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+  'AB-': ['A-', 'B-', 'AB-', 'O-'],
+  'O+': ['O+', 'O-'],
+  'O-': ['O-']
+};
+
+export const calculateNextDonationDate = (lastDonationDate: string): string => {
+  if (!lastDonationDate) return '';
+  
+  const lastDate = new Date(lastDonationDate);
+  const nextDate = new Date(lastDate);
+  nextDate.setMonth(nextDate.getMonth() + 3);
+  
+  return nextDate.toISOString().split('T')[0];
+};
+
+export const hasDonorGraduated = (semesterEndDate?: string): boolean => {
+  if (!semesterEndDate) return false;
+  
+  const endDate = new Date(semesterEndDate);
+  const today = new Date();
+  
+  return endDate < today;
+};

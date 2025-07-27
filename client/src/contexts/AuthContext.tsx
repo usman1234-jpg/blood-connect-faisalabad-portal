@@ -1,80 +1,127 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
-  role: 'admin' | 'user';
+  role: string;
 }
 
 interface AuthContextType {
-  user: User | null;
   isAuthenticated: boolean;
-  loading: boolean;
-  userRole: string;
+  user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  loading: boolean;
+  userRole: string;
+  isAdmin: () => boolean;
+  canEdit: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = () => user?.role === 'admin';
+  const canEdit = () => user?.role === 'admin';
+
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch('/api/auth/verify', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('token');
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('token');
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ username, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
+        localStorage.setItem('token', data.token);
         setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        setIsAuthenticated(true);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login failed:', error);
       return false;
     }
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     setUser(null);
-    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+  };
+
+  const value: AuthContextType = {
+    isAuthenticated,
+    user,
+    login,
+    logout,
+    loading,
+    userRole: user?.role || 'user',
+    isAdmin,
+    canEdit
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      loading,
-      userRole: user?.role || 'user',
-      login,
-      logout,
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };
