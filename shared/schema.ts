@@ -1,37 +1,61 @@
 
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: 'admin' | 'user';
+  created_at: string;
+  updated_at: string;
+}
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
+export interface Donor {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  blood_type?: string;
+  university?: string;
+  graduation_year?: number;
+  amount: number;
+  donation_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export const donors = sqliteTable("donors", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  bloodType: text("blood_type"),
-  address: text("address"),
-  university: text("university"),
-  lastDonation: text("last_donation"),
-  createdAt: text("created_at").notNull().default("CURRENT_TIMESTAMP"),
-});
+export interface DonorStats {
+  total_donors: number;
+  total_amount: number;
+  avg_amount: number;
+  universities_count: number;
+}
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export interface CreateDonorRequest {
+  name: string;
+  email?: string;
+  phone?: string;
+  blood_type?: string;
+  university?: string;
+  graduation_year?: number;
+  amount?: number;
+  donation_date?: string;
+  notes?: string;
+}
 
-export const insertDonorSchema = createInsertSchema(donors).omit({
-  id: true,
-  createdAt: true,
-});
+export interface CreateUserRequest {
+  username: string;
+  email: string;
+  password: string;
+  role?: 'admin' | 'user';
+}
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type InsertDonor = z.infer<typeof insertDonorSchema>;
-export type Donor = typeof donors.$inferSelect;
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface ApiResponse<T = any> {
+  data?: T;
+  message?: string;
+  success: boolean;
+}
